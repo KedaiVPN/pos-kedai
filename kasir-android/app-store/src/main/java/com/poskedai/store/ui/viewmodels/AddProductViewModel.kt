@@ -20,7 +20,8 @@ data class ProductFormState(
     val hasStock: Boolean = false,
     val minStockCount: Int = 0,
     val isStockNotificationEnabled: Boolean = false,
-    val imageUri: String? = null
+    val imageUri: String? = null,
+    val showBarcodeConfirmDialog: Boolean = false
 )
 
 class AddProductViewModel(private val repository: ProductRepository) : ViewModel() {
@@ -69,6 +70,16 @@ class AddProductViewModel(private val repository: ProductRepository) : ViewModel
         }
     }
 
+    fun dismissBarcodeDialog() {
+        updateFormState { it.copy(showBarcodeConfirmDialog = false) }
+    }
+
+    fun confirmAutoGenerateAndSubmit(productId: String?) {
+        val generatedCode = java.util.UUID.randomUUID().toString().substring(0, 12).uppercase()
+        updateFormState { it.copy(barcode = generatedCode, showBarcodeConfirmDialog = false) }
+        executeSubmitProduct(productId, generatedCode)
+    }
+
     fun submitProduct(productId: String?) {
         val state = _formState.value
         
@@ -89,24 +100,28 @@ class AddProductViewModel(private val repository: ProductRepository) : ViewModel
             _errorMessage.value = "Kategori harus diisi"
             return
         }
-        if (state.barcode.isBlank()) {
-            _errorMessage.value = "Barcode harus diisi. Gunakan tombol Generate jika produk tidak punya barcode"
-            return
-        }
         if (state.imageUri.isNullOrBlank()) {
             _errorMessage.value = "Foto produk harus diisi. Gunakan kamera atau pilih dari galeri"
             return
         }
 
+        // Jika barcode kosong, tampilkan dialog konfirmasi
+        if (state.barcode.isBlank()) {
+            updateFormState { it.copy(showBarcodeConfirmDialog = true) }
+            return
+        }
+
+        executeSubmitProduct(productId, state.barcode)
+    }
+
+    private fun executeSubmitProduct(productId: String?, finalBarcode: String) {
+        val state = _formState.value
         val finalStock = if (state.hasStock) state.stockCount else -1 // -1 signifies unlimited stock per Go schema
 
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
 
-            // To properly handle editing, ProductRepository should have an update method.
-            // For MVP simplicity and because `insertProduct` in ProductDao uses OnConflictStrategy.REPLACE,
-            // we can pass the productId to `addProductLocalAndSync` to overwrite the existing record.
             val buyPriceLong = state.buyPrice.toLongOrNull() ?: 0L
             val sellPriceLong = state.sellPrice.toLongOrNull() ?: 0L
 
@@ -119,7 +134,7 @@ class AddProductViewModel(private val repository: ProductRepository) : ViewModel
                 minStock = state.minStockCount,
                 category = state.category,
                 description = state.description,
-                barcode = state.barcode,
+                barcode = finalBarcode,
                 imageUrl = state.imageUri ?: "",
                 isStockNotificationEnabled = state.isStockNotificationEnabled
             )

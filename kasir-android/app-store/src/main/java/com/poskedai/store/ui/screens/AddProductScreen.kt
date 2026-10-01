@@ -111,6 +111,34 @@ fun AddProductScreen(
         }
     }
 
+    // Barcode Confirmation Dialog
+    if (formState.showBarcodeConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissBarcodeDialog() },
+            title = { Text("Konfirmasi Barcode") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Apakah anda yakin produk ini tidak memiliki barcode?")
+                    Text(
+                        "Barcode dapat di ubah di menu produk & stok",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.confirmAutoGenerateAndSubmit(productId) }) {
+                    Text("Ya")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissBarcodeDialog() }) {
+                    Text("Tidak")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
