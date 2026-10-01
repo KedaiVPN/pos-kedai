@@ -11,18 +11,19 @@ import (
 	"kasir-api-go/middleware"
 )
 
-func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rdb *redis.Client) {
+func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rdb *redis.Client, draftRdb *redis.Client) {
 	// Initialize handlers
 	wsManager := handlers.NewWebSocketManager()
 	userHandler := handlers.NewUserHandler(queries)
 	productHandler := handlers.NewProductHandler(queries, wsManager)
 	transactionHandler := handlers.NewTransactionHandler(queries, pool)
 	authHandler := handlers.NewAuthHandler(queries, pool)
-	adminHandler := handlers.NewAdminHandler(queries, pool)
+	adminHandler := handlers.NewAdminHandler(queries, pool, draftRdb)
 	storeHandler := handlers.NewStoreHandler(queries)
 	reportHandler := handlers.NewReportHandler(queries)
 	feedbackHandler := handlers.NewFeedbackHandler(queries)
 	subscriptionHandler := handlers.NewSubscriptionHandler(queries)
+	offHandler := handlers.NewOFFHandler(queries, draftRdb)
 
 	authMw := handlers.AuthMiddleware(queries)
 
@@ -162,6 +163,12 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 			adminRoutes.PUT("/subscription-plans/:id", subscriptionHandler.AdminUpdatePlan)
 			adminRoutes.DELETE("/subscription-plans/:id", subscriptionHandler.AdminDeletePlan)
 			adminRoutes.GET("/subscription-transactions", subscriptionHandler.AdminListTransactions)
+
+			// Open Food Facts Draft Management (Staging di Redis DB 1)
+			adminRoutes.POST("/off/fetch", offHandler.FetchFromOFF)
+			adminRoutes.GET("/off/drafts", offHandler.ListDrafts)
+			adminRoutes.POST("/off/drafts/approve", offHandler.ApproveDraft)
+			adminRoutes.DELETE("/off/drafts/:barcode", offHandler.RejectDraft)
 
 			// Master Product Global Toggle
 			adminRoutes.GET("/master-product-status", adminHandler.GetMasterProductStatus)

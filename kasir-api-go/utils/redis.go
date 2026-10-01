@@ -11,6 +11,7 @@ import (
 )
 
 var RedisClient *redis.Client
+var DraftRedisClient *redis.Client
 
 func InitRedis() *redis.Client {
 	redisUrl := os.Getenv("REDIS_URL")
@@ -34,6 +35,31 @@ func InitRedis() *redis.Client {
 	}
 
 	RedisClient = client
+	return client
+}
+
+func InitDraftRedis() *redis.Client {
+	redisUrl := os.Getenv("REDIS_URL")
+	if redisUrl == "" {
+		redisUrl = "localhost:6379"
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+
+	client := redis.NewClient(&redis.Options{
+		Addr:     redisUrl,
+		Password: redisPassword,
+		DB:       1, // Dedicated DB for OFF staging
+	})
+
+	_, err := client.Ping(context.Background()).Result()
+	if err != nil {
+		log.Printf("Warning: Failed to connect to Draft Redis (DB 1) at %s: %v", redisUrl, err)
+	} else {
+		log.Printf("Successfully connected to Draft Redis (DB 1) at %s", redisUrl)
+	}
+
+	DraftRedisClient = client
 	return client
 }
 

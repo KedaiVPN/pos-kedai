@@ -65,13 +65,16 @@ func main() {
 	// Initialize Redis (dipakai untuk OTP, rate limit, dan lockout login)
 	rdb := utils.InitRedis()
 
+	// Initialize Draft Redis (DB 1, untuk staging master produk dari OFF)
+	draftRdb := utils.InitDraftRedis()
+
 	// Mode release: jangan bocorkan detail route/log di produksi.
 	if os.Getenv("APP_ENV") == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	// Setup Routes
-	routes.SetupRoutes(router, queries, pool, rdb)
+	routes.SetupRoutes(router, queries, pool, rdb, draftRdb)
 
 	port := os.Getenv("PORT")
 	if port == "" {

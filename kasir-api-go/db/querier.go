@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CheckMasterProductBarcodeExists(ctx context.Context, barcode string) (bool, error)
 	CountMasterProducts(ctx context.Context) (int64, error)
 	CountPendingProducts(ctx context.Context) (int64, error)
 	CreateCashierReport(ctx context.Context, arg CreateCashierReportParams) (CashierReport, error)
@@ -45,6 +46,7 @@ type Querier interface {
 	GetCashierReportsByCashier(ctx context.Context, arg GetCashierReportsByCashierParams) ([]CashierReport, error)
 	GetCashierReportsByStore(ctx context.Context, storeID pgtype.UUID) ([]CashierReport, error)
 	GetCategoryByName(ctx context.Context, name string) (Category, error)
+	GetGlobalSetting(ctx context.Context, key string) (string, error)
 	GetMasterProduct(ctx context.Context, id pgtype.UUID) (MasterProduct, error)
 	GetPendingProduct(ctx context.Context, id pgtype.UUID) (PendingProduct, error)
 	GetRecentStoreTransactions(ctx context.Context, storeID pgtype.UUID) ([]Transaction, error)
@@ -75,6 +77,7 @@ type Querier interface {
 	ListUsersByStore(ctx context.Context, storeID pgtype.UUID) ([]User, error)
 	MarkTransactionsAsReported(ctx context.Context, arg MarkTransactionsAsReportedParams) error
 	UnmarkTransactionsAsReported(ctx context.Context, arg UnmarkTransactionsAsReportedParams) error
+	UpdateGlobalSetting(ctx context.Context, arg UpdateGlobalSettingParams) error
 	UpdatePendingProduct(ctx context.Context, arg UpdatePendingProductParams) error
 	UpdateStore(ctx context.Context, arg UpdateStoreParams) (Store, error)
 	UpdateStoreBlockStatus(ctx context.Context, arg UpdateStoreBlockStatusParams) error
@@ -88,8 +91,6 @@ type Querier interface {
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 	UpdateUserStoreID(ctx context.Context, arg UpdateUserStoreIDParams) error
-	GetGlobalSetting(ctx context.Context, key string) (string, error)
-	UpdateGlobalSetting(ctx context.Context, arg UpdateGlobalSettingParams) error
 }
 
 var _ Querier = (*Queries)(nil)

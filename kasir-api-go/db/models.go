@@ -38,6 +38,13 @@ type Category struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type GlobalSetting struct {
+	ID        int32              `json:"id"`
+	Key       string             `json:"key"`
+	Value     string             `json:"value"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type MasterProduct struct {
 	ID                 pgtype.UUID      `json:"id"`
 	Barcode            string           `json:"barcode"`
@@ -191,11 +198,4 @@ type User struct {
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 	PhotoUrl     pgtype.Text      `json:"photo_url"`
 	FcmToken     pgtype.Text      `json:"fcm_token"`
-}
-
-type GlobalSetting struct {
-	ID        int32              `json:"id"`
-	Key       string             `json:"key"`
-	Value     string             `json:"value"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }

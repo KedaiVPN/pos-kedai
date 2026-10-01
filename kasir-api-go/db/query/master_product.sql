@@ -19,6 +19,11 @@ ORDER BY mp.id;
 -- name: CountMasterProducts :one
 SELECT COUNT(*) FROM master_products;
 
+-- name: CheckMasterProductBarcodeExists :one
+SELECT EXISTS(
+  SELECT 1 FROM master_products WHERE barcode = $1
+) AS exists;
+
 -- name: DeleteMasterProduct :exec
 DELETE FROM master_products WHERE id = $1;
 

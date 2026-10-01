@@ -13,18 +13,20 @@ import (
 	"kasir-api-go/db"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AdminHandler struct {
-	queries *db.Queries
-	pool    *pgxpool.Pool
+	queries  *db.Queries
+	pool     *pgxpool.Pool
+	draftRdb *redis.Client
 }
 
-func NewAdminHandler(queries *db.Queries, pool *pgxpool.Pool) *AdminHandler {
-	return &AdminHandler{queries: queries, pool: pool}
+func NewAdminHandler(queries *db.Queries, pool *pgxpool.Pool, draftRdb *redis.Client) *AdminHandler {
+	return &AdminHandler{queries: queries, pool: pool, draftRdb: draftRdb}
 }
 
 type UpdateProRequest struct {

@@ -11,6 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const checkMasterProductBarcodeExists = `-- name: CheckMasterProductBarcodeExists :one
+SELECT EXISTS(
+  SELECT 1 FROM master_products WHERE barcode = $1
+) AS exists
+`
+
+func (q *Queries) CheckMasterProductBarcodeExists(ctx context.Context, barcode string) (bool, error) {
+	row := q.db.QueryRow(ctx, checkMasterProductBarcodeExists, barcode)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const countMasterProducts = `-- name: CountMasterProducts :one
 SELECT COUNT(*) FROM master_products
 `
