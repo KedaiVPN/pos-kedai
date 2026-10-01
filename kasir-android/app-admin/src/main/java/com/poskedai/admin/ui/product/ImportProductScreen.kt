@@ -20,6 +20,7 @@ import com.poskedai.core.network.OFFDraftDto
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
@@ -253,6 +254,7 @@ fun DraftCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApproveDialog(
     draft: OFFDraftDto,
