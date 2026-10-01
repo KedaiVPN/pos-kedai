@@ -21,6 +21,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.poskedai.admin.ui.dashboard.DashboardScreen
 import com.poskedai.admin.ui.product.ProductListScreen
+import com.poskedai.admin.ui.product.ImportProductScreen
 import com.poskedai.admin.ui.request.RequestProductScreen
 import com.poskedai.admin.ui.store.StoreDetailScreen
 import com.poskedai.admin.ui.store.StoreListScreen
@@ -99,7 +100,12 @@ fun MainScreen(onLogout: () -> Unit) {
                 )
             }
             composable(BottomNavItem.ProductList.route) {
-                ProductListScreen()
+                ProductListScreen(
+                    onNavigateToImport = { navController.navigate("import_products") }
+                )
+            }
+            composable("import_products") {
+                ImportProductScreen()
             }
             composable(BottomNavItem.RequestProduct.route) {
                 RequestProductScreen()

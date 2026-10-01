@@ -18,7 +18,10 @@ import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun ProductListScreen(viewModel: ProductListViewModel = viewModel()) {
+fun ProductListScreen(
+    viewModel: ProductListViewModel = viewModel(),
+    onNavigateToImport: () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     val actionState by viewModel.actionState.collectAsState()
     val isMasterEnabled by viewModel.isMasterEnabled.collectAsState()
@@ -57,10 +60,16 @@ fun ProductListScreen(viewModel: ProductListViewModel = viewModel()) {
             Text(
                 text = "List Produk Approved",
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
             )
-            Button(onClick = { showAddDialog = true }) {
-                Text("Tambah Produk")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onNavigateToImport) {
+                    Text("Import OFF")
+                }
+                Button(onClick = { showAddDialog = true }) {
+                    Text("Tambah")
+                }
             }
         }
 

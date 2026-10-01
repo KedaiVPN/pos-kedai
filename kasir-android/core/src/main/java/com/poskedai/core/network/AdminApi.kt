@@ -52,6 +52,33 @@ data class ToggleMasterProductRequest(
     val is_enabled: Boolean
 )
 
+// Open Food Facts DTOs
+data class OFFDraftDto(
+    val barcode: String = "",
+    val raw_name: String = "",
+    val brand: String = "",
+    val raw_category: String = "",
+    val image_url: String = "",
+    val fetched_at: String = ""
+)
+
+data class OFFDraftsResponse(
+    val drafts: List<OFFDraftDto> = emptyList(),
+    val count: Int = 0
+)
+
+data class OFFFetchResponse(
+    val inserted: Int = 0,
+    val skipped: Int = 0
+)
+
+data class ApproveDraftRequest(
+    val barcode: String,
+    val name: String,
+    val category_id: String,
+    val unit: String
+)
+
 interface AdminApi {
     @GET("admin/dashboard")
     suspend fun getDashboardStats(): Response<AdminDashboardStatsDto>
@@ -88,5 +115,21 @@ interface AdminApi {
 
     @DELETE("admin/stores/{id}")
     suspend fun deleteStore(@Path("id") id: String): Response<JsonObject>
+
+    // Open Food Facts Endpoints
+    @POST("admin/off/fetch")
+    suspend fun fetchFromOFF(
+        @retrofit2.http.Query("page") page: Int = 1,
+        @retrofit2.http.Query("page_size") pageSize: Int = 25
+    ): Response<OFFFetchResponse>
+
+    @GET("admin/off/drafts")
+    suspend fun getOFFDrafts(): Response<OFFDraftsResponse>
+
+    @POST("admin/off/drafts/approve")
+    suspend fun approveDraft(@Body request: ApproveDraftRequest): Response<JsonObject>
+
+    @DELETE("admin/off/drafts/{barcode}")
+    suspend fun rejectDraft(@Path("barcode") barcode: String): Response<JsonObject>
 }
 
