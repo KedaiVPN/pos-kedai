@@ -24,6 +24,10 @@ SELECT EXISTS(
   SELECT 1 FROM master_products WHERE barcode = $1
 ) AS exists;
 
+-- name: GetMasterProductByBarcode :one
+SELECT * FROM master_products
+WHERE barcode = $1 LIMIT 1;
+
 -- name: DeleteMasterProduct :exec
 DELETE FROM master_products WHERE id = $1;
 

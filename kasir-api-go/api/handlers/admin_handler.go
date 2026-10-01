@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -170,10 +171,18 @@ func (h *AdminHandler) ApproveProduct(c *gin.Context) {
 		return
 	}
 
-	// Assuming user ID from token
+	// Validate & normalize barcode: generate if empty
+	barcode := strings.TrimSpace(pendingProduct.Barcode.String)
+	isGeneratedBarcode := false
+	if barcode == "" {
+		barcode = fmt.Sprintf("GEN%d%04d", time.Now().Unix(), rand.Intn(10000))
+		isGeneratedBarcode = true
+		log.Printf("Generated barcode %v for pending product %v (was empty)\n", barcode, pendingProduct.ID)
+	}
+
+	// Get user ID from token
 	userIDStr, exists := c.Get("user_id")
 	var userIDBytes [16]byte
-
 	if exists {
 		if idStr, ok := userIDStr.(string); ok {
 			parsedUUID, err := uuid.Parse(idStr)
@@ -181,7 +190,6 @@ func (h *AdminHandler) ApproveProduct(c *gin.Context) {
 				userIDBytes = parsedUUID
 			}
 		} else if idBytes, ok := userIDStr.([]interface{}); ok {
-			// JWT parses byte array as []interface{}
 			if len(idBytes) == 16 {
 				for i, v := range idBytes {
 					if floatVal, ok := v.(float64); ok {
@@ -192,48 +200,69 @@ func (h *AdminHandler) ApproveProduct(c *gin.Context) {
 		}
 	}
 
-	// Process category
-	var categoryID pgtype.UUID
-	categoryName := pendingProduct.Category
-	if categoryName != "" {
-		category, err := h.queries.GetCategoryByName(c.Request.Context(), categoryName)
-		if err != nil {
-			// Category doesn't exist, create it
-			slug := strings.ToLower(strings.ReplaceAll(categoryName, " ", "-"))
-			newCategory, err := h.queries.CreateCategory(c.Request.Context(), db.CreateCategoryParams{
-				Name: categoryName,
-				Slug: slug,
-			})
-			if err == nil {
-				categoryID = newCategory.ID
+	// Check if product with this barcode already exists
+	existingProduct, errCheck := h.queries.GetMasterProductByBarcode(c.Request.Context(), barcode)
+	var masterProduct db.MasterProduct
+
+	if errCheck == nil && existingProduct.ID.Valid {
+		// Product barcode already exists - reuse it instead of creating duplicate
+		masterProduct = existingProduct
+		log.Printf("Barcode %v already exists in master_products (ID: %v). Reusing instead of creating duplicate.\n", barcode, existingProduct.ID)
+	} else {
+		// Product doesn't exist - create new master product
+		
+		// Process category
+		var categoryID pgtype.UUID
+		categoryName := pendingProduct.Category
+		if categoryName != "" {
+			category, err := h.queries.GetCategoryByName(c.Request.Context(), categoryName)
+			if err != nil {
+				// Category doesn't exist, create it
+				slug := strings.ToLower(strings.ReplaceAll(categoryName, " ", "-"))
+				newCategory, err := h.queries.CreateCategory(c.Request.Context(), db.CreateCategoryParams{
+					Name: categoryName,
+					Slug: slug,
+				})
+				if err == nil {
+					categoryID = newCategory.ID
+				} else {
+					log.Printf("Failed to create category '%v': %v. Continuing without category.\n", categoryName, err)
+					categoryID = pgtype.UUID{Valid: false}
+				}
 			} else {
-				categoryID = pgtype.UUID{Valid: false}
+				categoryID = category.ID
 			}
 		} else {
-			categoryID = category.ID
+			categoryID = pgtype.UUID{Valid: false}
 		}
-	} else {
-		categoryID = pgtype.UUID{Valid: false}
-	}
 
-	// Create master product
-	arg := db.CreateMasterProductParams{
-		Barcode:            pendingProduct.Barcode.String,
-		Name:               pendingProduct.Name,
-		PhotoUrl:           pendingProduct.ImageUrl,
-		PhotoPath:          pgtype.Text{Valid: false}, // We could derive this from URL, but keeping simple
-		CategoryID:         categoryID,
-		BrandID:            pgtype.UUID{Valid: false},
-		Unit:               pgtype.Text{String: "pcs", Valid: true}, // Default unit
-		Source:             pgtype.Text{String: "store_request", Valid: true},
-		IsGeneratedBarcode: pgtype.Bool{Bool: false, Valid: true},
-		CreatedBy:          pgtype.UUID{Bytes: userIDBytes, Valid: true},
-	}
+		// Ensure photo_url is set
+		photoUrl := pendingProduct.ImageUrl
+		if !photoUrl.Valid || photoUrl.String == "" {
+			log.Printf("Warning: Pending product %v has no photo_url. This should not happen with client-side validation.\n", pendingProduct.ID)
+			photoUrl = pgtype.Text{String: "", Valid: false}
+		}
 
-	masterProduct, err := h.queries.CreateMasterProduct(c.Request.Context(), arg)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create master product"})
-		return
+		// Create master product
+		arg := db.CreateMasterProductParams{
+			Barcode:            barcode,
+			Name:               pendingProduct.Name,
+			PhotoUrl:           photoUrl,
+			PhotoPath:          pgtype.Text{Valid: false},
+			CategoryID:         categoryID,
+			BrandID:            pgtype.UUID{Valid: false},
+			Unit:               pgtype.Text{String: "pcs", Valid: true},
+			Source:             pgtype.Text{String: "store_request", Valid: true},
+			IsGeneratedBarcode: pgtype.Bool{Bool: isGeneratedBarcode, Valid: true},
+			CreatedBy:          pgtype.UUID{Bytes: userIDBytes, Valid: true},
+		}
+
+		masterProduct, err = h.queries.CreateMasterProduct(c.Request.Context(), arg)
+		if err != nil {
+			log.Printf("Error creating master product for barcode %v, name %v: %v\n", barcode, pendingProduct.Name, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create master product: %v", err)})
+			return
+		}
 	}
 
 	// Add product to store_products for the store that requested it
@@ -244,26 +273,30 @@ func (h *AdminHandler) ApproveProduct(c *gin.Context) {
 			BuyPrice:        pendingProduct.BuyPrice,
 			SellPrice:       pendingProduct.SellPrice,
 			Stock:           pendingProduct.Stock,
-			MinStock:        0, // Default min stock
+			MinStock:        0,
 			LocalName:       pgtype.Text{String: pendingProduct.Name, Valid: true},
 			LocalCategory:   pgtype.Text{String: pendingProduct.Category, Valid: true},
 		}
 
 		_, err = h.queries.CreateStoreProduct(c.Request.Context(), storeProductArg)
 		if err != nil {
-			log.Printf("Failed to add approved product %v to store %v: %v\n", masterProduct.ID, pendingProduct.StoreID, err)
-			// Continue execution, as the master product is already created
+			log.Printf("Failed to add product %v to store %v: %v\n", masterProduct.ID, pendingProduct.StoreID, err)
+			// Continue - master product is already created
 		}
 	}
 
 	// Delete from pending
 	err = h.queries.DeletePendingProduct(c.Request.Context(), pendingProduct.ID)
 	if err != nil {
-		// Log error, but we already created the master product
 		log.Printf("Failed to delete pending product %v after approval: %v\n", pendingProduct.ID, err)
 	}
 
-	c.JSON(http.StatusOK, masterProduct)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Product approved successfully",
+		"product": masterProduct,
+		"barcode_generated": isGeneratedBarcode,
+		"barcode": barcode,
+	})
 }
 
 func (h *AdminHandler) RejectProduct(c *gin.Context) {

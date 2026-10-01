@@ -48,6 +48,7 @@ type Querier interface {
 	GetCategoryByName(ctx context.Context, name string) (Category, error)
 	GetGlobalSetting(ctx context.Context, key string) (string, error)
 	GetMasterProduct(ctx context.Context, id pgtype.UUID) (MasterProduct, error)
+	GetMasterProductByBarcode(ctx context.Context, barcode string) (MasterProduct, error)
 	GetPendingProduct(ctx context.Context, id pgtype.UUID) (PendingProduct, error)
 	GetRecentStoreTransactions(ctx context.Context, storeID pgtype.UUID) ([]Transaction, error)
 	GetRecentStoreTransactionsByCashier(ctx context.Context, arg GetRecentStoreTransactionsByCashierParams) ([]Transaction, error)

@@ -135,6 +135,33 @@ func (q *Queries) GetMasterProduct(ctx context.Context, id pgtype.UUID) (MasterP
 	return i, err
 }
 
+const getMasterProductByBarcode = `-- name: GetMasterProductByBarcode :one
+SELECT id, barcode, name, photo_url, photo_path, category_id, brand_id, unit, source, is_generated_barcode, is_active, created_by, created_at, updated_at FROM master_products
+WHERE barcode = $1 LIMIT 1
+`
+
+func (q *Queries) GetMasterProductByBarcode(ctx context.Context, barcode string) (MasterProduct, error) {
+	row := q.db.QueryRow(ctx, getMasterProductByBarcode, barcode)
+	var i MasterProduct
+	err := row.Scan(
+		&i.ID,
+		&i.Barcode,
+		&i.Name,
+		&i.PhotoUrl,
+		&i.PhotoPath,
+		&i.CategoryID,
+		&i.BrandID,
+		&i.Unit,
+		&i.Source,
+		&i.IsGeneratedBarcode,
+		&i.IsActive,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listMasterProducts = `-- name: ListMasterProducts :many
 SELECT mp.id, mp.barcode, mp.name, mp.photo_url, mp.photo_path, mp.category_id, mp.brand_id, mp.unit, mp.source, mp.is_generated_barcode, mp.is_active, mp.created_by, mp.created_at, mp.updated_at, c.name as category_name
 FROM master_products mp

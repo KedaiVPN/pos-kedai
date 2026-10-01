@@ -71,8 +71,30 @@ class AddProductViewModel(private val repository: ProductRepository) : ViewModel
 
     fun submitProduct(productId: String?) {
         val state = _formState.value
-        if (state.name.isBlank() || state.buyPrice.isBlank() || state.sellPrice.isBlank() || state.category.isBlank()) {
-            _errorMessage.value = "Nama, Harga, dan Kategori harus diisi"
+        
+        // Validasi field wajib
+        if (state.name.isBlank()) {
+            _errorMessage.value = "Nama produk harus diisi"
+            return
+        }
+        if (state.buyPrice.isBlank()) {
+            _errorMessage.value = "Harga beli harus diisi"
+            return
+        }
+        if (state.sellPrice.isBlank()) {
+            _errorMessage.value = "Harga jual harus diisi"
+            return
+        }
+        if (state.category.isBlank()) {
+            _errorMessage.value = "Kategori harus diisi"
+            return
+        }
+        if (state.barcode.isBlank()) {
+            _errorMessage.value = "Barcode harus diisi. Gunakan tombol Generate jika produk tidak punya barcode"
+            return
+        }
+        if (state.imageUri.isNullOrBlank()) {
+            _errorMessage.value = "Foto produk harus diisi. Gunakan kamera atau pilih dari galeri"
             return
         }
 
