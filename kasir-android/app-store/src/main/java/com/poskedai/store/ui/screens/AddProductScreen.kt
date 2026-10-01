@@ -125,11 +125,11 @@ fun AddProductScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Apakah anda yakin produk ini tidak memiliki barcode?",
+                        "Seriusan gk ada barcode nya?",
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        "Barcode akan di-generate acak secara otomatis dan dapat di ubah di menu produk & stok",
+                        "Barcode akan di generate otomatis dan dapat di ubah di menu produk & stok",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -144,9 +144,12 @@ fun AddProductScreen(
                 }
             },
             dismissButton = {
-                TextButton(
+                Button(
                     onClick = { viewModel.dismissBarcodeDialog() },
-                    modifier = Modifier.height(48.dp)
+                    modifier = Modifier.height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
                     Text("Tidak")
                 }
