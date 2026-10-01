@@ -115,24 +115,39 @@ fun AddProductScreen(
     if (formState.showBarcodeConfirmDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissBarcodeDialog() },
-            title = { Text("Konfirmasi Barcode") },
+            title = { 
+                Text(
+                    "Produk Tanpa Barcode?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Apakah anda yakin produk ini tidak memiliki barcode?")
                     Text(
-                        "Barcode dapat di ubah di menu produk & stok",
-                        style = MaterialTheme.typography.bodySmall,
+                        "Apakah anda yakin produk ini tidak memiliki barcode?",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        "Barcode akan di-generate acak secara otomatis dan dapat di ubah di menu produk & stok",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
             confirmButton = {
-                Button(onClick = { viewModel.confirmAutoGenerateAndSubmit(productId) }) {
-                    Text("Ya")
+                Button(
+                    onClick = { viewModel.confirmAutoGenerateAndSubmit(productId) },
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    Text("Ya, Lanjutkan")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.dismissBarcodeDialog() }) {
+                TextButton(
+                    onClick = { viewModel.dismissBarcodeDialog() },
+                    modifier = Modifier.height(48.dp)
+                ) {
                     Text("Tidak")
                 }
             }
