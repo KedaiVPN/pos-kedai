@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -19,7 +21,94 @@ import (
 const (
 	DraftHashKey = "off:drafts"
 	OFFAPI       = "https://id.openfoodfacts.org/api/v2"
+	OFFUserAgent = "PosKedaiAdmin - Web - Version 1.0 - admin@poskedai.my.id"
 )
+
+// IndonesianPopularBrands - Daftar brand FMCG terlaris di Indonesia (Kantar 2024-2025)
+var IndonesianPopularBrands = []string{
+	// Makanan Instan & Mie
+	"indomie", "mie sedaap", "sarimi", "supermi", "pop mie", "bihunku", "sukses", "gaga",
+	// Biskuit & Snack
+	"roma", "nabati", "gery", "chitato", "lays", "qtela", "tango", "oreo", "khong guan",
+	"monde", "slai olai", "malkist", "beng-beng", "choki choki", "momogi", "taro",
+	// Bumbu & Penyedap
+	"royco", "masako", "bango", "sasa", "ajinomoto", "sedaap", "indofood", "abc", "ladaku", "desaku",
+	// Kopi & Minuman
+	"kapal api", "torabika", "luwak", "good day", "nescafe", "teh botol", "teh pucuk",
+	"le minerale", "aqua", "cleo", "ultra milk", "indomilk", "dancow", "frisian flag",
+	"bear brand", "marjan", "nutrisari", "floridina", "pocari", "mizone",
+	// Sembako & Minyak
+	"sunco", "bimoli", "filma", "tropical", "sania", "fortune", "rose brand", "segitiga biru",
+	"gulaku", "cakra kembar", "kunci biru",
+	// Sabun & Perawatan Rumah
+	"soklin", "daia", "rinso", "sunlight", "mama lemon", "ekonomi", "downy", "molto",
+	"wipol", "super pell", "bayfresh", "hit", "vape", "baygon",
+	// Perawatan Pribadi
+	"lifebuoy", "lux", "giv", "nuvo", "pepsodent", "ciptadent", "close up", "pantene",
+	"sunsilk", "clear", "head & shoulders", "rejoice", "shinzui", "wardah", "kahf",
+	// Frozen Food & Olahan
+	"kanzler", "so good", "fiesta", "champ", "belfoods", "bernardi",
+}
+
+// isIndonesianBrand mengecek apakah brand produk termasuk brand populer Indonesia
+func isIndonesianBrand(brand, productName string) bool {
+	combined := strings.ToLower(brand + " " + productName)
+	for _, b := range IndonesianPopularBrands {
+		if strings.Contains(combined, b) {
+			return true
+		}
+	}
+	return false
+}
+
+// downloadAndSaveImage mengunduh gambar dari OFF dan menyimpannya di folder uploads lokal
+func downloadAndSaveImage(imageURL, barcode string) (string, error) {
+	if imageURL == "" {
+		return "", nil
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("GET", imageURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", OFFUserAgent)
+
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch image: status %d", resp.StatusCode)
+	}
+	defer resp.Body.Close()
+
+	uploadDir := "uploads"
+	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
+		return "", err
+	}
+
+	ext := ".jpg"
+	if strings.HasSuffix(strings.ToLower(imageURL), ".png") {
+		ext = ".png"
+	} else if strings.HasSuffix(strings.ToLower(imageURL), ".webp") {
+		ext = ".webp"
+	}
+
+	filename := fmt.Sprintf("off_%s_%d%s", barcode, time.Now().Unix(), ext)
+	filePath := filepath.Join(uploadDir, filename)
+
+	out, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		os.Remove(filePath)
+		return "", err
+	}
+
+	return fmt.Sprintf("/uploads/%s", filename), nil
+}
 
 type OFFHandler struct {
 	queries  *db.Queries
@@ -106,6 +195,16 @@ func (h *OFFHandler) FetchFromOFF(c *gin.Context) {
 			continue
 		}
 
+		// Filter: Hanya produk dengan brand Indonesia populer
+		nameToUse := prod.ProductNameID
+		if nameToUse == "" {
+			nameToUse = prod.ProductName
+		}
+		if !isIndonesianBrand(prod.Brands, nameToUse) {
+			skipped++
+			continue
+		}
+
 		// Cek apakah barcode sudah ada di master_products PostgreSQL
 		exists, err := h.queries.CheckMasterProductBarcodeExists(ctx, prod.Barcode)
 		if err == nil && exists {
@@ -120,13 +219,22 @@ func (h *OFFHandler) FetchFromOFF(c *gin.Context) {
 			continue
 		}
 
+		// Download gambar ke folder uploads lokal
+		localImageURL := ""
+		if prod.ImageURL != "" {
+			downloadedURL, err := downloadAndSaveImage(prod.ImageURL, prod.Barcode)
+			if err == nil {
+				localImageURL = downloadedURL
+			}
+		}
+
 		// Simpan ke Redis DB 1
 		draft := DraftProduct{
 			Barcode:     prod.Barcode,
-			RawName:     prod.ProductName,
+			RawName:     nameToUse,
 			Brand:       prod.Brands,
 			RawCategory: prod.Categories,
-			ImageURL:    prod.ImageURL,
+			ImageURL:    localImageURL,
 			FetchedAt:   fetchedAt,
 		}
 
@@ -281,7 +389,7 @@ func (h *OFFHandler) ApproveDraft(c *gin.Context) {
 	})
 }
 
-// RejectDraft - Admin skip/reject draft, hapus dari Redis
+// RejectDraft - Admin skip/reject draft, hapus dari Redis dan delete foto
 func (h *OFFHandler) RejectDraft(c *gin.Context) {
 	barcode := c.Param("barcode")
 	if barcode == "" {
@@ -290,6 +398,24 @@ func (h *OFFHandler) RejectDraft(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
+
+	// Ambil draft dulu untuk mendapatkan image URL sebelum dihapus
+	draftJSON, err := h.draftRdb.HGet(ctx, DraftHashKey, barcode).Result()
+	var draft DraftProduct
+	if err == nil {
+		json.Unmarshal([]byte(draftJSON), &draft)
+	}
+
+	// Hapus foto dari folder uploads jika ada
+	if draft.ImageURL != "" && strings.HasPrefix(draft.ImageURL, "/uploads/") {
+		// Konversi URL ke file path lokal
+		filename := strings.TrimPrefix(draft.ImageURL, "/uploads/")
+		filePath := filepath.Join("uploads", filename)
+		if err := os.Remove(filePath); err != nil {
+			// Log tapi jangan fail jika delete foto gagal
+			fmt.Printf("Warning: Failed to delete image file %s: %v\n", filePath, err)
+		}
+	}
 
 	// Hapus dari Redis
 	deleted, err := h.draftRdb.HDel(ctx, DraftHashKey, barcode).Result()
@@ -304,7 +430,7 @@ func (h *OFFHandler) RejectDraft(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Draft rejected and removed",
+		"message": "Draft rejected, removed from Redis, and image deleted",
 		"barcode": barcode,
 	})
 }
