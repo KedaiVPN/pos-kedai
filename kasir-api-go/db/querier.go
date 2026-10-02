@@ -80,6 +80,7 @@ type Querier interface {
 	MarkTransactionsAsReported(ctx context.Context, arg MarkTransactionsAsReportedParams) error
 	UnmarkTransactionsAsReported(ctx context.Context, arg UnmarkTransactionsAsReportedParams) error
 	UpdateGlobalSetting(ctx context.Context, arg UpdateGlobalSettingParams) error
+	UpdateMasterProduct(ctx context.Context, arg UpdateMasterProductParams) error
 	UpdatePendingProduct(ctx context.Context, arg UpdatePendingProductParams) error
 	UpdateStore(ctx context.Context, arg UpdateStoreParams) (Store, error)
 	UpdateStoreBlockStatus(ctx context.Context, arg UpdateStoreBlockStatusParams) error

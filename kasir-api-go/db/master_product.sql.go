@@ -222,3 +222,36 @@ func (q *Queries) ListMasterProducts(ctx context.Context) ([]ListMasterProductsR
 	}
 	return items, nil
 }
+
+const updateMasterProduct = `-- name: UpdateMasterProduct :exec
+UPDATE master_products
+SET
+  name = COALESCE($1, name),
+  barcode = COALESCE($2, barcode),
+  category_id = COALESCE($3, category_id),
+  photo_url = COALESCE($4, photo_url),
+  unit = COALESCE($5, unit),
+  updated_at = NOW()
+WHERE id = $6
+`
+
+type UpdateMasterProductParams struct {
+	Name       pgtype.Text `json:"name"`
+	Barcode    pgtype.Text `json:"barcode"`
+	CategoryID pgtype.UUID `json:"category_id"`
+	PhotoUrl   pgtype.Text `json:"photo_url"`
+	Unit       pgtype.Text `json:"unit"`
+	ID         pgtype.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateMasterProduct(ctx context.Context, arg UpdateMasterProductParams) error {
+	_, err := q.db.Exec(ctx, updateMasterProduct,
+		arg.Name,
+		arg.Barcode,
+		arg.CategoryID,
+		arg.PhotoUrl,
+		arg.Unit,
+		arg.ID,
+	)
+	return err
+}

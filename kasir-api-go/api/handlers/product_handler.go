@@ -584,8 +584,48 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 		// Call notification check immediately after updating
 		go CheckAndSendStockNotification(context.Background(), h.queries, pgtype.UUID{Bytes: id, Valid: true})
+	} else if status == "master" {
+		// Update master_products: name, barcode, category_id, photo_url
+		var categoryID pgtype.UUID
+		if req.Category != "" {
+			category, err := h.queries.GetCategoryByName(c.Request.Context(), req.Category)
+			if err != nil {
+				// Category not found, create new one
+				slug := strings.ReplaceAll(strings.ToLower(req.Category), " ", "-")
+				newCategory, createErr := h.queries.CreateCategory(c.Request.Context(), db.CreateCategoryParams{
+					Name: req.Category,
+					Slug: slug,
+				})
+				if createErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create category"})
+					return
+				}
+				categoryID = newCategory.ID
+			} else {
+				categoryID = category.ID
+			}
+		}
+
+		// Normalize photo URL before storing
+		normalizedPhotoUrl := req.ImageURL
+		if normalizedPhotoUrl != "" {
+			normalizedPhotoUrl = normalizePhotoURL(normalizedPhotoUrl, req.Barcode)
+		}
+
+		arg := db.UpdateMasterProductParams{
+			ID:         pgtype.UUID{Bytes: id, Valid: true},
+			Name:       pgtype.Text{String: req.Name, Valid: req.Name != ""},
+			Barcode:    pgtype.Text{String: req.Barcode, Valid: req.Barcode != ""},
+			CategoryID: categoryID,
+			PhotoUrl:   pgtype.Text{String: normalizedPhotoUrl, Valid: normalizedPhotoUrl != ""},
+		}
+		err = h.queries.UpdateMasterProduct(c.Request.Context(), arg)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "status query param must be 'pending' or 'approved'"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status query param must be 'pending', 'approved', or 'master'"})
 		return
 	}
 

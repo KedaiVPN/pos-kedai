@@ -20,7 +20,8 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun ProductListScreen(
     viewModel: ProductListViewModel = viewModel(),
-    onNavigateToImport: () -> Unit = {}
+    onNavigateToImport: () -> Unit = {},
+    onNavigateToEdit: (JsonObject) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val actionState by viewModel.actionState.collectAsState()
@@ -120,12 +121,11 @@ fun ProductListScreen(
                     ) {
                         items(products.size, key = { products[it].get("id")?.asString ?: it }) { index ->
                             val product = products[index]
-                            var showEditDialog by remember { mutableStateOf(false) }
                             var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
                             ProductItem(
                                 product = product,
-                                onEdit = { showEditDialog = true },
+                                onEdit = { onNavigateToEdit(product) },
                                 onDelete = { showDeleteConfirmDialog = true }
                             )
 
@@ -147,24 +147,6 @@ fun ProductListScreen(
                                         OutlinedButton(onClick = { showDeleteConfirmDialog = false }) {
                                             Text("Batal")
                                         }
-                                    }
-                                )
-                            }
-
-                            if (showEditDialog) {
-                                EditProductDialog(
-                                    product = product,
-                                    onDismiss = { showEditDialog = false },
-                                    onSave = { name, category, barcode ->
-                                        val id = product.get("id")?.asString ?: return@EditProductDialog
-                                        val buyPrice = if (product.has("buy_price") && !product.get("buy_price").isJsonNull) product.get("buy_price").asString else "0"
-                                        val sellPrice = if (product.has("sell_price") && !product.get("sell_price").isJsonNull) product.get("sell_price").asString else "0"
-                                        val stock = if (product.has("stock") && !product.get("stock").isJsonNull) product.get("stock").asInt else 0
-                                        val desc = if (product.has("description") && !product.get("description").isJsonNull) product.get("description").asString else ""
-                                        val imgUrl = if (product.has("photo_url") && !product.get("photo_url").isJsonNull) product.get("photo_url").asString else ""
-
-                                        viewModel.updateProduct(id, name, category, barcode, buyPrice, sellPrice, stock, desc, imgUrl)
-                                        showEditDialog = false
                                     }
                                 )
                             }
@@ -194,6 +176,7 @@ fun ProductListScreen(
 fun ProductItem(product: JsonObject, onEdit: () -> Unit, onDelete: () -> Unit) {
     val name = product.get("name")?.asString ?: "Unknown"
     val barcode = product.get("barcode")?.asString ?: "-"
+    val category = product.get("category_name")?.asString ?: "-"
     val photoUrl = if (product.has("photo_url") && !product.get("photo_url").isJsonNull) {
         product.get("photo_url").asString
     } else ""
@@ -227,6 +210,11 @@ fun ProductItem(product: JsonObject, onEdit: () -> Unit, onDelete: () -> Unit) {
                 Text(
                     text = "Barcode: $barcode",
                     style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "Kategori: $category",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column {

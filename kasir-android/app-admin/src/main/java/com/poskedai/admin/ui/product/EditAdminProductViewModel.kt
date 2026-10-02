@@ -41,8 +41,11 @@ class EditAdminProductViewModel : ViewModel() {
         val name = productJson.getStringSafe("name")
             .ifEmpty { productJson.getStringSafe("product_name") }
         val barcode = productJson.getStringSafe("barcode")
-        val category = productJson.getStringSafe("category")
-            .ifEmpty { productJson.getStringSafe("category_id") }
+        // category_name diprioritaskan: master product dari ListMasterProducts
+        // mengirim category_name (hasil JOIN categories), bukan "category"
+        val category = productJson.getStringSafe("category_name")
+            .ifEmpty { productJson.getStringSafe("category") }
+            .ifEmpty { productJson.getStringSafe("local_category") }
         val photoUrl = productJson.getStringSafe("image_url")
             .ifEmpty { productJson.getStringSafe("photo_url") }
             .ifEmpty { productJson.getStringSafe("image") }
@@ -189,7 +192,7 @@ class EditAdminProductViewModel : ViewModel() {
                     image_url = cleanPhotoUrl(_uiState.value.photoUrl)
                 )
 
-                val status = if (isPending) "pending" else "approved"
+                val status = if (isPending) "pending" else "master"
                 val response = RetrofitClient.productApi.updateProduct(productId, status, request)
                 
                 if (response.isSuccessful) {

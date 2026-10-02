@@ -102,7 +102,12 @@ fun MainScreen(onLogout: () -> Unit) {
             }
             composable(BottomNavItem.ProductList.route) {
                 ProductListScreen(
-                    onNavigateToImport = { navController.navigate("import_products") }
+                    onNavigateToImport = { navController.navigate("import_products") },
+                    onNavigateToEdit = { productJson ->
+                        android.util.Log.d("MainScreen", "onNavigateToEdit (master): product JSON = $productJson")
+                        ProductDataHolder.set(productJson)
+                        navController.navigate("edit_admin_product?isPending=false")
+                    }
                 )
             }
             composable("import_products") {

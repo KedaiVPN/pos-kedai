@@ -28,6 +28,17 @@ SELECT EXISTS(
 SELECT * FROM master_products
 WHERE barcode = $1 LIMIT 1;
 
+-- name: UpdateMasterProduct :exec
+UPDATE master_products
+SET
+  name = COALESCE(sqlc.narg(name), name),
+  barcode = COALESCE(sqlc.narg(barcode), barcode),
+  category_id = COALESCE(sqlc.narg(category_id), category_id),
+  photo_url = COALESCE(sqlc.narg(photo_url), photo_url),
+  unit = COALESCE(sqlc.narg(unit), unit),
+  updated_at = NOW()
+WHERE id = sqlc.arg(id);
+
 -- name: DeleteMasterProduct :exec
 DELETE FROM master_products WHERE id = $1;
 
