@@ -14,13 +14,13 @@ import (
 )
 
 type ProductHandler struct {
-	queries *db.Queries
+	queries   *db.Queries
 	wsManager *WebSocketManager
 }
 
 func NewProductHandler(queries *db.Queries, wsManager *WebSocketManager) *ProductHandler {
 	return &ProductHandler{
-		queries: queries,
+		queries:   queries,
 		wsManager: wsManager,
 	}
 }
@@ -58,10 +58,16 @@ func (h *ProductHandler) CreateMasterProduct(c *gin.Context) {
 	req.Unit = SanitizeText(req.Unit)
 	req.Source = SanitizeText(req.Source)
 
+	// Normalize photo URL before storing
+	normalizedPhotoUrl := req.PhotoURL
+	if normalizedPhotoUrl != "" {
+		normalizedPhotoUrl = normalizePhotoURL(normalizedPhotoUrl, req.Barcode)
+	}
+
 	arg := db.CreateMasterProductParams{
 		Barcode:            req.Barcode,
 		Name:               req.Name,
-		PhotoUrl:           pgtype.Text{String: req.PhotoURL, Valid: req.PhotoURL != ""},
+		PhotoUrl:           pgtype.Text{String: normalizedPhotoUrl, Valid: normalizedPhotoUrl != ""},
 		PhotoPath:          pgtype.Text{String: req.PhotoPath, Valid: req.PhotoPath != ""},
 		Unit:               pgtype.Text{String: req.Unit, Valid: req.Unit != ""},
 		Source:             pgtype.Text{String: req.Source, Valid: req.Source != ""},
@@ -114,8 +120,8 @@ func (h *ProductHandler) CreateMasterProduct(c *gin.Context) {
 		return
 	}
 
-    // Call notification check immediately after creating or updating
-    go CheckAndSendStockNotification(context.Background(), h.queries, product.ID)
+	// Call notification check immediately after creating or updating
+	go CheckAndSendStockNotification(context.Background(), h.queries, product.ID)
 
 	c.JSON(http.StatusCreated, product)
 }
@@ -246,8 +252,8 @@ func (h *ProductHandler) CreateStoreProduct(c *gin.Context) {
 	}
 
 	arg := db.CreateStoreProductParams{
-		StoreID:         pgtype.UUID{Bytes: storeID, Valid: true},
-		MasterProductID: pgtype.UUID{Bytes: masterProductID, Valid: true},
+		StoreID:                    pgtype.UUID{Bytes: storeID, Valid: true},
+		MasterProductID:            pgtype.UUID{Bytes: masterProductID, Valid: true},
 		BuyPrice:                   req.BuyPrice,
 		SellPrice:                  req.SellPrice,
 		Stock:                      req.Stock,
@@ -537,6 +543,12 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if status == "pending" {
+		// Normalize photo URL before storing
+		normalizedPhotoUrl := req.ImageURL
+		if normalizedPhotoUrl != "" {
+			normalizedPhotoUrl = normalizePhotoURL(normalizedPhotoUrl, req.Barcode)
+		}
+
 		arg := db.UpdatePendingProductParams{
 			ID:          pgtype.UUID{Bytes: id, Valid: true},
 			Name:        req.Name,
@@ -546,7 +558,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 			Category:    req.Category,
 			Description: pgtype.Text{String: req.Description, Valid: req.Description != ""},
 			Barcode:     pgtype.Text{String: req.Barcode, Valid: req.Barcode != ""},
-			ImageUrl:    pgtype.Text{String: req.ImageURL, Valid: req.ImageURL != ""},
+			ImageUrl:    pgtype.Text{String: normalizedPhotoUrl, Valid: normalizedPhotoUrl != ""},
 		}
 		err = h.queries.UpdatePendingProduct(c.Request.Context(), arg)
 		if err != nil {
@@ -560,7 +572,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 			SellPrice:                  req.SellPrice,
 			Stock:                      req.Stock,
 			MinStock:                   req.MinStock,
-			LocalName:                  pgtype.Text{String: req.Name, Valid: req.Name != ""}, // Name mapped to local_name
+			LocalName:                  pgtype.Text{String: req.Name, Valid: req.Name != ""},         // Name mapped to local_name
 			LocalCategory:              pgtype.Text{String: req.Category, Valid: req.Category != ""}, // Category mapped to local_category
 			IsStockNotificationEnabled: pgtype.Bool{Bool: req.IsStockNotificationEnabled, Valid: true},
 		}
@@ -571,7 +583,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		}
 
 		// Call notification check immediately after updating
-        go CheckAndSendStockNotification(context.Background(), h.queries, pgtype.UUID{Bytes: id, Valid: true})
+		go CheckAndSendStockNotification(context.Background(), h.queries, pgtype.UUID{Bytes: id, Valid: true})
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "status query param must be 'pending' or 'approved'"})
 		return

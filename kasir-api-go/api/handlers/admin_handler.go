@@ -211,7 +211,7 @@ func (h *AdminHandler) ApproveProduct(c *gin.Context) {
 		log.Printf("Barcode %v already exists in master_products (ID: %v). Reusing instead of creating duplicate.\n", barcode, existingProduct.ID)
 	} else {
 		// Product doesn't exist - create new master product
-		
+
 		// Process category
 		var categoryID pgtype.UUID
 		categoryName := pendingProduct.Category
@@ -237,11 +237,21 @@ func (h *AdminHandler) ApproveProduct(c *gin.Context) {
 			categoryID = pgtype.UUID{Valid: false}
 		}
 
-		// Ensure photo_url is set
+		// Ensure photo_url is set and normalized
 		photoUrl := pendingProduct.ImageUrl
 		if !photoUrl.Valid || photoUrl.String == "" {
 			log.Printf("Warning: Pending product %v has no photo_url. This should not happen with client-side validation.\n", pendingProduct.ID)
 			photoUrl = pgtype.Text{String: "", Valid: false}
+		} else {
+			// Normalize photo URL to /uploads/ format
+			normalized := normalizePhotoURL(photoUrl.String, barcode)
+			if normalized != "" {
+				photoUrl = pgtype.Text{String: normalized, Valid: true}
+				log.Printf("Normalized photo URL from %s to %s\n", pendingProduct.ImageUrl.String, normalized)
+			} else {
+				log.Printf("Warning: Failed to normalize photo URL %s for product %v\n", photoUrl.String, pendingProduct.ID)
+				photoUrl = pgtype.Text{String: "", Valid: false}
+			}
 		}
 
 		// Create master product
@@ -293,10 +303,10 @@ func (h *AdminHandler) ApproveProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Product approved successfully",
-		"product": masterProduct,
+		"message":           "Product approved successfully",
+		"product":           masterProduct,
 		"barcode_generated": isGeneratedBarcode,
-		"barcode": barcode,
+		"barcode":           barcode,
 	})
 }
 

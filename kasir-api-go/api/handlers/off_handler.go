@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -134,12 +135,12 @@ type OFFSearchResponse struct {
 }
 
 type DraftProduct struct {
-	Barcode       string `json:"barcode"`
-	RawName       string `json:"raw_name"`
-	Brand         string `json:"brand"`
-	RawCategory   string `json:"raw_category"`
-	ImageURL      string `json:"image_url"`
-	FetchedAt     int64  `json:"fetched_at"`
+	Barcode     string `json:"barcode"`
+	RawName     string `json:"raw_name"`
+	Brand       string `json:"brand"`
+	RawCategory string `json:"raw_category"`
+	ImageURL    string `json:"image_url"`
+	FetchedAt   int64  `json:"fetched_at"`
 }
 
 // FetchFromOFF - Admin menarik batch produk dari Open Food Facts
@@ -361,10 +362,16 @@ func (h *OFFHandler) ApproveDraft(c *gin.Context) {
 		unit = "pcs"
 	}
 
+	// Normalize photo URL to /uploads/ format (downloads external URLs)
+	normalizedPhotoUrl := normalizePhotoURL(draft.ImageURL, req.Barcode)
+	if normalizedPhotoUrl == "" {
+		log.Printf("Warning: Failed to normalize photo URL %s for OFF draft %s\n", draft.ImageURL, req.Barcode)
+	}
+
 	arg := db.CreateMasterProductParams{
 		Barcode:            req.Barcode,
 		Name:               req.Name,
-		PhotoUrl:           pgtype.Text{String: draft.ImageURL, Valid: draft.ImageURL != ""},
+		PhotoUrl:           pgtype.Text{String: normalizedPhotoUrl, Valid: normalizedPhotoUrl != ""},
 		PhotoPath:          pgtype.Text{Valid: false},
 		CategoryID:         categoryID,
 		BrandID:            pgtype.UUID{Valid: false},

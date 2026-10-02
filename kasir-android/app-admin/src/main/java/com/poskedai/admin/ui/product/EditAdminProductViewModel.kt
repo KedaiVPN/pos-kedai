@@ -163,6 +163,16 @@ class EditAdminProductViewModel : ViewModel() {
         }
     }
 
+    private fun cleanPhotoUrl(url: String): String {
+        if (url.isBlank()) return ""
+        val baseUrl = "https://api-go-v1.free-account.my.id"
+        return if (url.startsWith(baseUrl)) {
+            url.substring(baseUrl.length)
+        } else {
+            url
+        }
+    }
+
     fun saveProductChanges(productId: String, isPending: Boolean, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
@@ -176,7 +186,7 @@ class EditAdminProductViewModel : ViewModel() {
                     sell_price = 0L,
                     stock = 0,
                     description = "",
-                    image_url = _uiState.value.photoUrl
+                    image_url = cleanPhotoUrl(_uiState.value.photoUrl)
                 )
 
                 val status = if (isPending) "pending" else "approved"
@@ -214,7 +224,7 @@ class EditAdminProductViewModel : ViewModel() {
                     sell_price = 0L,
                     stock = 0,
                     description = "",
-                    image_url = _uiState.value.photoUrl
+                    image_url = cleanPhotoUrl(_uiState.value.photoUrl)
                 )
 
                 val updateResponse = RetrofitClient.productApi.updateProduct(productId, "pending", updateRequest)
