@@ -33,6 +33,7 @@ import com.poskedai.admin.ui.scanner.BarcodeScannerScreen
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.launch
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,6 +46,7 @@ fun EditAdminProductScreen(
     viewModel: EditAdminProductViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
     
     val productId = if (productJson.has("id") && !productJson.get("id").isJsonNull) productJson.get("id").asString else ""
@@ -377,7 +379,7 @@ fun EditAdminProductScreen(
                             loadingServerPhotos = true
                             showServerPhotoDialog = true
                             // Fetch server photos
-                            kotlinx.coroutines.MainScope().launch {
+                            scope.launch {
                                 try {
                                     val response = com.poskedai.core.network.RetrofitClient.adminApi.getRecentUploads()
                                     if (response.isSuccessful) {
