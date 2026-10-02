@@ -7,7 +7,9 @@ import com.poskedai.core.network.RetrofitClient
 import com.poskedai.store.utils.ImageCompressor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import com.poskedai.store.data.local.TransactionDao
 import com.poskedai.store.data.local.ProductDao
 import com.poskedai.store.data.local.LocalTransactionEntity
@@ -304,7 +306,7 @@ class ProductRepository(
 
         // Include barcode as form-data if provided
         val barcodeBody = barcode?.let {
-            RequestBody.create("text/plain".toMediaTypeOrNull(), it)
+            it.toRequestBody("text/plain".toMediaTypeOrNull())
         }
 
         val response = RetrofitClient.productApi.uploadImage(body, barcodeBody)
