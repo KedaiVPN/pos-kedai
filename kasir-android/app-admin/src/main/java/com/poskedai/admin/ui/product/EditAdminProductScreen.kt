@@ -381,11 +381,21 @@ fun EditAdminProductScreen(
                             // Fetch server photos
                             scope.launch {
                                 try {
+                                    android.util.Log.d("EditAdminProduct", "Fetching recent uploads from server...")
                                     val response = com.poskedai.core.network.RetrofitClient.adminApi.getRecentUploads()
+                                    android.util.Log.d("EditAdminProduct", "Response code: ${response.code()}")
+                                    android.util.Log.d("EditAdminProduct", "Response body: ${response.body()}")
+                                    
                                     if (response.isSuccessful) {
-                                        serverPhotos = response.body()?.get("files") ?: emptyList()
+                                        val files = response.body()?.get("files") ?: emptyList()
+                                        android.util.Log.d("EditAdminProduct", "Files count: ${files.size}")
+                                        serverPhotos = files
+                                    } else {
+                                        android.util.Log.e("EditAdminProduct", "Response not successful: ${response.code()} - ${response.errorBody()?.string()}")
+                                        android.widget.Toast.makeText(context, "Error ${response.code()}: ${response.message()}", android.widget.Toast.LENGTH_SHORT).show()
                                     }
                                 } catch (e: Exception) {
+                                    android.util.Log.e("EditAdminProduct", "Exception fetching server photos", e)
                                     android.widget.Toast.makeText(context, "Gagal memuat foto server: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
                                 } finally {
                                     loadingServerPhotos = false

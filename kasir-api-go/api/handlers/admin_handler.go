@@ -630,28 +630,51 @@ func (h *AdminHandler) GetMasterProductStatus(c *gin.Context) {
 
 // ListRecentUploads returns a list of recently uploaded image filenames/URLs in /uploads
 func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
-	// Path uploads tetap /kasir-api-go/uploads seperti yang di-set saat upload
 	uploadsDir := "/kasir-api-go/uploads"
+	log.Printf("[DEBUG-UPLOADS] ListRecentUploads dipanggil. Target uploadsDir: %s", uploadsDir)
 
-	if _, err := os.Stat(uploadsDir); err != nil {
-		c.JSON(http.StatusOK, gin.H{"files": []map[string]interface{}{}})
+	stat, err := os.Stat(uploadsDir)
+	if err != nil {
+		log.Printf("[DEBUG-UPLOADS] ERROR: os.Stat gagal untuk path %s: %v", uploadsDir, err)
+		c.JSON(http.StatusOK, gin.H{
+			"files": []map[string]interface{}{},
+			"debug": gin.H{
+				"target_dir": uploadsDir,
+				"error":      err.Error(),
+			},
+		})
+		return
+	}
+
+	if !stat.IsDir() {
+		log.Printf("[DEBUG-UPLOADS] ERROR: path %s bukan direktori", uploadsDir)
+		c.JSON(http.StatusOK, gin.H{
+			"files": []map[string]interface{}{},
+			"debug": gin.H{
+				"target_dir": uploadsDir,
+				"error":      "path is not a directory",
+			},
+		})
 		return
 	}
 
 	type UploadFileInfo struct {
-		Name     string    `json:"name"`
-		URL      string    `json:"url"`
-		ModTime  time.Time `json:"mod_time"`
+		Name    string    `json:"name"`
+		URL     string    `json:"url"`
+		ModTime time.Time `json:"mod_time"`
 	}
 
 	var imageFiles []UploadFileInfo
+	var totalScanned int
 	var walkDir func(currentDir string, relPrefix string)
 	walkDir = func(currentDir string, relPrefix string) {
 		entries, err := os.ReadDir(currentDir)
 		if err != nil {
+			log.Printf("[DEBUG-UPLOADS] ERROR: os.ReadDir gagal pada %s: %v", currentDir, err)
 			return
 		}
 		for _, entry := range entries {
+			totalScanned++
 			entryPath := filepath.Join(currentDir, entry.Name())
 			relPath := filepath.Join(relPrefix, entry.Name())
 
@@ -664,7 +687,6 @@ func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
 			if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
 				info, err := entry.Info()
 				if err == nil {
-					// Pastikan URL berawalan /uploads/
 					cleanURL := filepath.ToSlash(relPath)
 					if !strings.HasPrefix(cleanURL, "/") {
 						cleanURL = "/" + cleanURL
@@ -675,11 +697,14 @@ func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
 						ModTime: info.ModTime(),
 					})
 				}
+			} else {
+				log.Printf("[DEBUG-UPLOADS] Skip non-image: %s (ext: %s)", entry.Name(), ext)
 			}
 		}
 	}
 
 	walkDir(uploadsDir, "uploads")
+	log.Printf("[DEBUG-UPLOADS] Scan selesai. Total file/folder di-scan: %d, Total gambar valid: %d", totalScanned, len(imageFiles))
 
 	// Sort newest first
 	sort.Slice(imageFiles, func(i, j int) bool {
@@ -691,5 +716,12 @@ func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
 		imageFiles = imageFiles[:50]
 	}
 
-	c.JSON(http.StatusOK, gin.H{"files": imageFiles})
+	c.JSON(http.StatusOK, gin.H{
+		"files": imageFiles,
+		"debug": gin.H{
+			"target_dir":    uploadsDir,
+			"total_scanned": totalScanned,
+			"total_images":  len(imageFiles),
+		},
+	})
 }
