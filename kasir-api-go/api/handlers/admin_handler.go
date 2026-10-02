@@ -630,10 +630,25 @@ func (h *AdminHandler) GetMasterProductStatus(c *gin.Context) {
 
 // ListRecentUploads returns a list of recently uploaded image filenames/URLs in /uploads
 func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
-	uploadsDir := "uploads"
-	files, err := os.ReadDir(uploadsDir)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"files": []string{}})
+	candidateDirs := []string{
+		"/kasir-api-go/uploads",
+		"uploads",
+		"./uploads",
+		"../uploads",
+		"/var/www/kasir-api/uploads",
+		"/var/www/kasir-api-go/uploads",
+	}
+
+	var uploadsDir string
+	for _, dir := range candidateDirs {
+		if stat, err := os.Stat(dir); err == nil && stat.IsDir() {
+			uploadsDir = dir
+			break
+		}
+	}
+
+	if uploadsDir == "" {
+		c.JSON(http.StatusOK, gin.H{"files": []map[string]interface{}{}})
 		return
 	}
 
@@ -644,22 +659,41 @@ func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
 	}
 
 	var imageFiles []UploadFileInfo
-	for _, f := range files {
-		if f.IsDir() {
-			continue
+	var walkDir func(currentDir string, relPrefix string)
+	walkDir = func(currentDir string, relPrefix string) {
+		entries, err := os.ReadDir(currentDir)
+		if err != nil {
+			return
 		}
-		ext := strings.ToLower(filepath.Ext(f.Name()))
-		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
-			info, err := f.Info()
-			if err == nil {
-				imageFiles = append(imageFiles, UploadFileInfo{
-					Name:    f.Name(),
-					URL:     fmt.Sprintf("/uploads/%s", f.Name()),
-					ModTime: info.ModTime(),
-				})
+		for _, entry := range entries {
+			entryPath := filepath.Join(currentDir, entry.Name())
+			relPath := filepath.Join(relPrefix, entry.Name())
+
+			if entry.IsDir() {
+				walkDir(entryPath, relPath)
+				continue
+			}
+
+			ext := strings.ToLower(filepath.Ext(entry.Name()))
+			if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
+				info, err := entry.Info()
+				if err == nil {
+					// Pastikan URL berawalan /uploads/
+					cleanURL := filepath.ToSlash(relPath)
+					if !strings.HasPrefix(cleanURL, "/") {
+						cleanURL = "/" + cleanURL
+					}
+					imageFiles = append(imageFiles, UploadFileInfo{
+						Name:    entry.Name(),
+						URL:     cleanURL,
+						ModTime: info.ModTime(),
+					})
+				}
 			}
 		}
 	}
+
+	walkDir(uploadsDir, "uploads")
 
 	// Sort newest first
 	sort.Slice(imageFiles, func(i, j int) bool {
