@@ -22,6 +22,7 @@ import androidx.navigation.navArgument
 import com.poskedai.admin.ui.dashboard.DashboardScreen
 import com.poskedai.admin.ui.product.ProductListScreen
 import com.poskedai.admin.ui.product.ImportProductScreen
+import com.poskedai.admin.ui.product.ProductDataHolder
 import com.poskedai.admin.ui.request.RequestProductScreen
 import com.poskedai.admin.ui.store.StoreDetailScreen
 import com.poskedai.admin.ui.store.StoreListScreen
@@ -111,11 +112,10 @@ fun MainScreen(onLogout: () -> Unit) {
                 RequestProductScreen(
                     onNavigateToEdit = { productJson ->
                         android.util.Log.d("MainScreen", "onNavigateToEdit: product JSON = $productJson")
-                        val jsonStr = productJson.toString()
-                        android.util.Log.d("MainScreen", "JSON String length: ${jsonStr.length}")
-                        // Pass JSON as argument or store in savedStateHandle
-                        navController.currentBackStackEntry?.savedStateHandle?.set("edit_product_json", jsonStr)
-                        android.util.Log.d("MainScreen", "SavedStateHandle set, navigating to edit_admin_product")
+                        android.util.Log.d("MainScreen", "JSON keys: ${productJson.keySet()}")
+                        // Use ProductDataHolder for reliable data passing
+                        ProductDataHolder.set(productJson)
+                        android.util.Log.d("MainScreen", "ProductDataHolder set, navigating to edit_admin_product")
                         navController.navigate("edit_admin_product?isPending=true")
                     }
                 )
@@ -130,24 +130,24 @@ fun MainScreen(onLogout: () -> Unit) {
                 )
             ) { backStackEntry ->
                 val isPending = backStackEntry.arguments?.getBoolean("isPending") ?: true
-                val productJsonStr = navController.previousBackStackEntry?.savedStateHandle?.get<String>("edit_product_json") ?: "{}"
-                android.util.Log.d("MainScreen", "edit_admin_product received productJsonStr: $productJsonStr")
-                val productJson = try {
-                    com.google.gson.JsonParser.parseString(productJsonStr).asJsonObject
-                } catch (e: Exception) {
-                    android.util.Log.e("MainScreen", "Error parsing productJsonStr", e)
-                    com.google.gson.JsonObject()
-                }
+                // Get product JSON from ProductDataHolder (much more reliable than savedStateHandle)
+                val productJson = ProductDataHolder.get() ?: com.google.gson.JsonObject()
+                android.util.Log.d("MainScreen", "edit_admin_product received productJson from holder: $productJson")
+                android.util.Log.d("MainScreen", "JSON keys available: ${productJson.keySet()}")
 
                 com.poskedai.admin.ui.product.EditAdminProductScreen(
                     productJson = productJson,
                     isPending = isPending,
-                    onBackClick = { navController.popBackStack() },
+                    onBackClick = { 
+                        ProductDataHolder.getAndClear()  // Clear holder on back
+                        navController.popBackStack() 
+                    },
                     onSuccess = {
+                        ProductDataHolder.getAndClear()  // Clear holder on success
                         navController.popBackStack()
                     },
                     viewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-                        key = "edit_product_${productJsonStr.hashCode()}"
+                        key = "edit_product_${productJson.hashCode()}"
                     )
                 )
             }

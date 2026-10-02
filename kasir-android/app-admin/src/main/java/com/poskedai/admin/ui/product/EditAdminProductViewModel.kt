@@ -37,12 +37,19 @@ class EditAdminProductViewModel : ViewModel() {
     fun loadProduct(productJson: JsonObject) {
         android.util.Log.d("EditAdminProductVM", "loadProduct called with JSON: $productJson")
         
+        // Multi-key fallback sama seperti RequestProductScreen
         val name = productJson.getStringSafe("name")
+            .ifEmpty { productJson.getStringSafe("product_name") }
         val barcode = productJson.getStringSafe("barcode")
         val category = productJson.getStringSafe("category")
+            .ifEmpty { productJson.getStringSafe("category_id") }
         val photoUrl = productJson.getStringSafe("image_url")
+            .ifEmpty { productJson.getStringSafe("photo_url") }
+            .ifEmpty { productJson.getStringSafe("image") }
+            .ifEmpty { productJson.getStringSafe("url") }
         
         android.util.Log.d("EditAdminProductVM", "Parsed - name: $name, barcode: $barcode, category: $category, photoUrl: $photoUrl")
+        android.util.Log.d("EditAdminProductVM", "JSON keys available: ${productJson.keySet()}")
         
         _uiState.value = _uiState.value.copy(
             productName = name,
