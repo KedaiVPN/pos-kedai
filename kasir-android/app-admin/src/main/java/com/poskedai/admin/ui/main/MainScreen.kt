@@ -108,7 +108,35 @@ fun MainScreen(onLogout: () -> Unit) {
                 ImportProductScreen()
             }
             composable(BottomNavItem.RequestProduct.route) {
-                RequestProductScreen()
+                RequestProductScreen(
+                    onNavigateToEdit = { productJson ->
+                        // Pass JSON as argument or store in savedStateHandle
+                        navController.currentBackStackEntry?.savedStateHandle?.set("edit_product_json", productJson.toString())
+                        navController.navigate("edit_admin_product?isPending=true")
+                    }
+                )
+            }
+            composable(
+                route = "edit_admin_product?isPending={isPending}",
+                arguments = listOf(
+                    navArgument("isPending") {
+                        type = NavType.BoolType
+                        defaultValue = true
+                    }
+                )
+            ) { backStackEntry ->
+                val isPending = backStackEntry.arguments?.getBoolean("isPending") ?: true
+                val productJsonStr = navController.previousBackStackEntry?.savedStateHandle?.get<String>("edit_product_json") ?: "{}"
+                val productJson = com.google.gson.JsonParser.parseString(productJsonStr).asJsonObject
+
+                com.poskedai.admin.ui.product.EditAdminProductScreen(
+                    productJson = productJson,
+                    isPending = isPending,
+                    onBackClick = { navController.popBackStack() },
+                    onSuccess = {
+                        navController.popBackStack()
+                    }
+                )
             }
             composable(BottomNavItem.Subscriptions.route) {
                 AdminSubscriptionScreen()

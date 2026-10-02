@@ -21,7 +21,10 @@ fun JsonObject.getStringSafe(key: String, defaultValue: String = ""): String {
 }
 
 @Composable
-fun RequestProductScreen(viewModel: RequestProductViewModel = viewModel()) {
+fun RequestProductScreen(
+    viewModel: RequestProductViewModel = viewModel(),
+    onNavigateToEdit: (JsonObject) -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     val actionState by viewModel.actionState.collectAsState()
     val context = LocalContext.current
@@ -64,32 +67,12 @@ fun RequestProductScreen(viewModel: RequestProductViewModel = viewModel()) {
                     ) {
                         items(products.size, key = { products[it].getStringSafe("id").ifEmpty { "index-$it" } }) { index ->
                             val product = products[index]
-                            var showEditDialog by remember { mutableStateOf(false) }
                             PendingProductItem(
                                 product = product,
                                 onApprove = { id -> viewModel.approveProduct(id) },
                                 onReject = { id -> viewModel.rejectProduct(id) },
-                                onEdit = { showEditDialog = true }
+                                onEdit = { onNavigateToEdit(product) }
                             )
-
-                            if (showEditDialog) {
-                                com.poskedai.admin.ui.product.EditProductDialog(
-                                    product = product,
-                                    onDismiss = { showEditDialog = false },
-                                    onSave = { name, category, barcode ->
-                                        val id = product.getStringSafe("id")
-                                        if (id.isEmpty()) return@EditProductDialog
-                                        val buyPrice = product.getStringSafe("buy_price", "0")
-                                        val sellPrice = product.getStringSafe("sell_price", "0")
-                                        val stock = if (product.has("stock") && !product.get("stock").isJsonNull) product.get("stock").asInt else 0
-                                        val desc = product.getStringSafe("description")
-                                        val imgUrl = product.getStringSafe("image_url")
-
-                                        viewModel.updateProduct(id, name, category, barcode, buyPrice, sellPrice, stock, desc, imgUrl)
-                                        showEditDialog = false
-                                    }
-                                )
-                            }
                         }
                     }
                 }
