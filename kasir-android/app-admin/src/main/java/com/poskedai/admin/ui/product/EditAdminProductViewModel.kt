@@ -35,11 +35,20 @@ class EditAdminProductViewModel : ViewModel() {
     val uiState: StateFlow<EditAdminProductUiState> = _uiState.asStateFlow()
 
     fun loadProduct(productJson: JsonObject) {
+        android.util.Log.d("EditAdminProductVM", "loadProduct called with JSON: $productJson")
+        
+        val name = productJson.getStringSafe("name")
+        val barcode = productJson.getStringSafe("barcode")
+        val category = productJson.getStringSafe("category")
+        val photoUrl = productJson.getStringSafe("image_url")
+        
+        android.util.Log.d("EditAdminProductVM", "Parsed - name: $name, barcode: $barcode, category: $category, photoUrl: $photoUrl")
+        
         _uiState.value = _uiState.value.copy(
-            productName = productJson.getStringSafe("name"),
-            productBarcode = productJson.getStringSafe("barcode"),
-            productCategory = productJson.getStringSafe("category"),
-            photoUrl = productJson.getStringSafe("image_url")
+            productName = name,
+            productBarcode = barcode,
+            productCategory = category,
+            photoUrl = photoUrl
         )
         loadCategories()
     }

@@ -110,8 +110,12 @@ fun MainScreen(onLogout: () -> Unit) {
             composable(BottomNavItem.RequestProduct.route) {
                 RequestProductScreen(
                     onNavigateToEdit = { productJson ->
+                        android.util.Log.d("MainScreen", "onNavigateToEdit: product JSON = $productJson")
+                        val jsonStr = productJson.toString()
+                        android.util.Log.d("MainScreen", "JSON String length: ${jsonStr.length}")
                         // Pass JSON as argument or store in savedStateHandle
-                        navController.currentBackStackEntry?.savedStateHandle?.set("edit_product_json", productJson.toString())
+                        navController.currentBackStackEntry?.savedStateHandle?.set("edit_product_json", jsonStr)
+                        android.util.Log.d("MainScreen", "SavedStateHandle set, navigating to edit_admin_product")
                         navController.navigate("edit_admin_product?isPending=true")
                     }
                 )
@@ -127,7 +131,13 @@ fun MainScreen(onLogout: () -> Unit) {
             ) { backStackEntry ->
                 val isPending = backStackEntry.arguments?.getBoolean("isPending") ?: true
                 val productJsonStr = navController.previousBackStackEntry?.savedStateHandle?.get<String>("edit_product_json") ?: "{}"
-                val productJson = com.google.gson.JsonParser.parseString(productJsonStr).asJsonObject
+                android.util.Log.d("MainScreen", "edit_admin_product received productJsonStr: $productJsonStr")
+                val productJson = try {
+                    com.google.gson.JsonParser.parseString(productJsonStr).asJsonObject
+                } catch (e: Exception) {
+                    android.util.Log.e("MainScreen", "Error parsing productJsonStr", e)
+                    com.google.gson.JsonObject()
+                }
 
                 com.poskedai.admin.ui.product.EditAdminProductScreen(
                     productJson = productJson,
