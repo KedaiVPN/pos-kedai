@@ -39,7 +39,10 @@ interface ProductApi {
 
     @Multipart
     @POST("upload")
-    suspend fun uploadImage(@Part image: MultipartBody.Part): Response<Map<String, String>>
+    suspend fun uploadImage(
+        @Part image: MultipartBody.Part,
+        @Part("barcode") barcode: okhttp3.RequestBody? = null
+    ): Response<Map<String, String>>
 
     @DELETE("products/{id}")
     suspend fun deleteProduct(

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -73,7 +74,26 @@ func UploadImage(c *gin.Context) {
 	// Normalisasi ekstensi ke huruf kecil supaya tidak ada file .PNG / .JPG
 	// yang lolos dengan casing aneh lalu dieksekusi sebagai skrip.
 	extension := strings.ToLower(filepath.Ext(file.Filename))
-	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), extension)
+	
+	// Cek apakah ada barcode yang disertakan dalam form-data atau query param
+	barcode := strings.TrimSpace(c.PostForm("barcode"))
+	if barcode == "" {
+		barcode = strings.TrimSpace(c.Query("barcode"))
+	}
+
+	var filename string
+	if barcode != "" {
+		// Bersihkan karakter non-alphanumeric pada barcode agar aman digunakan sebagai nama file
+		reg := regexp.MustCompile(`[^a-zA-Z0-9_\-]`)
+		cleanBarcode := reg.ReplaceAllString(barcode, "")
+		if cleanBarcode != "" {
+			filename = fmt.Sprintf("%s_%d%s", cleanBarcode, time.Now().UnixNano(), extension)
+		} else {
+			filename = fmt.Sprintf("%d%s", time.Now().UnixNano(), extension)
+		}
+	} else {
+		filename = fmt.Sprintf("%d%s", time.Now().UnixNano(), extension)
+	}
 
 	// Ensure uploads directory exists
 	if err := os.MkdirAll("uploads", 0o755); err != nil {

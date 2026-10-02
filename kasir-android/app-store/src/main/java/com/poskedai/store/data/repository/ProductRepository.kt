@@ -254,7 +254,7 @@ class ProductRepository(
 
         // 2. Attempt to sync to backend immediately
         return try {
-            val finalImageUrl = uploadImageIfLocal(imageUrl)
+            val finalImageUrl = uploadImageIfLocal(imageUrl, barcode)
 
             val storeId = TokenManager(context).getStoreId()
 
@@ -290,7 +290,7 @@ class ProductRepository(
         }
     }
 
-    private suspend fun uploadImageIfLocal(uriString: String): String {
+    private suspend fun uploadImageIfLocal(uriString: String, barcode: String? = null): String {
         if (!uriString.startsWith("content://") && !uriString.startsWith("file://")) {
             return uriString // Already a remote URL or empty
         }
@@ -302,7 +302,12 @@ class ProductRepository(
         val requestFile = compressedFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
         val body = MultipartBody.Part.createFormData("image", compressedFile.name, requestFile)
 
-        val response = RetrofitClient.productApi.uploadImage(body)
+        // Include barcode as form-data if provided
+        val barcodeBody = barcode?.let {
+            RequestBody.create("text/plain".toMediaTypeOrNull(), it)
+        }
+
+        val response = RetrofitClient.productApi.uploadImage(body, barcodeBody)
         if (response.isSuccessful) {
             val data = response.body()
             return data?.get("image_url") as? String ?: throw Exception("URL gambar tidak ditemukan dalam respons")
