@@ -628,35 +628,37 @@ func (h *AdminHandler) GetMasterProductStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"is_enabled": isEnabled})
 }
 
-// ListRecentUploads returns a list of recently uploaded image filenames/URLs in /uploads
+// ListRecentUploads returns a list of recently uploaded image filenames/URLs in uploads directory
 func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
-	uploadsDir := "/kasir-api-go/uploads"
-	log.Printf("[DEBUG-UPLOADS] ListRecentUploads dipanggil. Target uploadsDir: %s", uploadsDir)
+	// Candidate directories to search
+	candidates := []string{
+		"./uploads",
+		"uploads",
+		"/kasir-api-go/uploads",
+		"/www/wwwroot/kasir/uploads",
+	}
 
-	stat, err := os.Stat(uploadsDir)
-	if err != nil {
-		log.Printf("[DEBUG-UPLOADS] ERROR: os.Stat gagal untuk path %s: %v", uploadsDir, err)
+	var uploadsDir string
+	for _, dir := range candidates {
+		if stat, err := os.Stat(dir); err == nil && stat.IsDir() {
+			uploadsDir = dir
+			break
+		}
+	}
+
+	if uploadsDir == "" {
+		log.Printf("[DEBUG-UPLOADS] ERROR: Tidak ada direktori uploads yang ditemukan dari candidates: %v", candidates)
 		c.JSON(http.StatusOK, gin.H{
 			"files": []map[string]interface{}{},
 			"debug": gin.H{
-				"target_dir": uploadsDir,
-				"error":      err.Error(),
+				"error":      "uploads directory not found",
+				"candidates": candidates,
 			},
 		})
 		return
 	}
 
-	if !stat.IsDir() {
-		log.Printf("[DEBUG-UPLOADS] ERROR: path %s bukan direktori", uploadsDir)
-		c.JSON(http.StatusOK, gin.H{
-			"files": []map[string]interface{}{},
-			"debug": gin.H{
-				"target_dir": uploadsDir,
-				"error":      "path is not a directory",
-			},
-		})
-		return
-	}
+	log.Printf("[DEBUG-UPLOADS] ListRecentUploads menggunakan uploadsDir: %s", uploadsDir)
 
 	type UploadFileInfo struct {
 		Name    string    `json:"name"`

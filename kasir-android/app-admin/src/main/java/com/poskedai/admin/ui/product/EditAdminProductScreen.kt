@@ -142,10 +142,18 @@ fun EditAdminProductScreen(
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     val baseUrl = "https://api-go-v1.free-account.my.id"
-                    val fullImageUrl = if (uiState.photoUrl.startsWith("/")) "$baseUrl${uiState.photoUrl}" else uiState.photoUrl
+                    // Handle different URI schemes properly
+                    val fullImageUrl = when {
+                        uiState.photoUrl.isEmpty() -> "https://via.placeholder.com/300x200"
+                        uiState.photoUrl.startsWith("content://") -> uiState.photoUrl // Local Android content URI
+                        uiState.photoUrl.startsWith("file://") -> uiState.photoUrl // Local file URI
+                        uiState.photoUrl.startsWith("http://") || uiState.photoUrl.startsWith("https://") -> uiState.photoUrl // Absolute URL
+                        uiState.photoUrl.startsWith("/") -> "$baseUrl${uiState.photoUrl}" // Relative server path
+                        else -> uiState.photoUrl // Fallback
+                    }
                     
                     AsyncImage(
-                        model = fullImageUrl.ifEmpty { "https://via.placeholder.com/300x200" },
+                        model = fullImageUrl,
                         contentDescription = "Foto Produk",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
