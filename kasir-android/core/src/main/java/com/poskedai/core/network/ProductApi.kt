@@ -75,4 +75,10 @@ interface ProductApi {
 
     @retrofit2.http.GET("products/store")
     suspend fun getStoreProducts(@Query("store_id") storeId: String): Response<List<com.google.gson.JsonObject>>
+
+    @retrofit2.http.GET("categories")
+    suspend fun getCategories(): Response<List<com.google.gson.JsonObject>>
+
+    @retrofit2.http.POST("categories")
+    suspend fun createCategory(@retrofit2.http.Body request: Map<String, String>): Response<com.google.gson.JsonObject>
 }

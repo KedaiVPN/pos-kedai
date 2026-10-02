@@ -47,11 +47,18 @@ class EditAdminProductViewModel : ViewModel() {
     private fun loadCategories() {
         viewModelScope.launch {
             try {
-                // TODO: Call backend endpoint to fetch categories
-                // For now, we'll just use empty list
-                _uiState.value = _uiState.value.copy(categories = emptyList())
+                val response = RetrofitClient.productApi.getCategories()
+                if (response.isSuccessful) {
+                    val categoryList = response.body()?.map { it.get("name").asString } ?: emptyList()
+                    _uiState.value = _uiState.value.copy(categories = categoryList)
+                } else {
+                    _uiState.value = _uiState.value.copy(categories = emptyList())
+                }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(errorMessage = "Gagal memuat kategori: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Gagal memuat kategori: ${e.message}",
+                    categories = emptyList()
+                )
             }
         }
     }
@@ -115,17 +122,22 @@ class EditAdminProductViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
-                // TODO: Call backend endpoint to create category
-                val updatedCategories = _uiState.value.categories.toMutableList()
-                if (!updatedCategories.contains(categoryName)) {
-                    updatedCategories.add(categoryName)
+                
+                val response = RetrofitClient.productApi.createCategory(mapOf("name" to categoryName))
+                if (response.isSuccessful) {
+                    val updatedCategories = _uiState.value.categories.toMutableList()
+                    if (!updatedCategories.contains(categoryName)) {
+                        updatedCategories.add(categoryName)
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        categories = updatedCategories,
+                        productCategory = categoryName,
+                        successMessage = "Kategori baru berhasil dibuat",
+                        isLoading = false
+                    )
+                } else {
+                    throw Exception("Gagal membuat kategori: ${response.code()}")
                 }
-                _uiState.value = _uiState.value.copy(
-                    categories = updatedCategories,
-                    productCategory = categoryName,
-                    successMessage = "Kategori baru berhasil dibuat",
-                    isLoading = false
-                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     errorMessage = "Gagal membuat kategori: ${e.message}",
