@@ -93,13 +93,6 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 			categories.POST("/", authMw, categoryHandler.CreateCategory)
 		}
 
-		// Admin-only routes
-		admin := api.Group("/admin")
-		admin.Use(middleware.AdminOnly())
-		{
-			admin.GET("/uploads/recent", adminHandler.ListRecentUploads)
-		}
-
 		// Report routes
 		reports := api.Group("/reports")
 		reports.Use(authMw)
@@ -188,6 +181,9 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 			// Master Product Global Toggle
 			adminRoutes.GET("/master-product-status", adminHandler.GetMasterProductStatus)
 			adminRoutes.PUT("/master-product-status", adminHandler.ToggleMasterProduct)
+
+			// Admin Uploads
+			adminRoutes.GET("/uploads/recent", adminHandler.ListRecentUploads)
 		}
 
 		// Feedback route

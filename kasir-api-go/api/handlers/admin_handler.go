@@ -630,24 +630,10 @@ func (h *AdminHandler) GetMasterProductStatus(c *gin.Context) {
 
 // ListRecentUploads returns a list of recently uploaded image filenames/URLs in /uploads
 func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
-	candidateDirs := []string{
-		"/kasir-api-go/uploads",
-		"uploads",
-		"./uploads",
-		"../uploads",
-		"/var/www/kasir-api/uploads",
-		"/var/www/kasir-api-go/uploads",
-	}
+	// Path uploads tetap /kasir-api-go/uploads seperti yang di-set saat upload
+	uploadsDir := "/kasir-api-go/uploads"
 
-	var uploadsDir string
-	for _, dir := range candidateDirs {
-		if stat, err := os.Stat(dir); err == nil && stat.IsDir() {
-			uploadsDir = dir
-			break
-		}
-	}
-
-	if uploadsDir == "" {
+	if _, err := os.Stat(uploadsDir); err != nil {
 		c.JSON(http.StatusOK, gin.H{"files": []map[string]interface{}{}})
 		return
 	}
