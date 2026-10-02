@@ -24,6 +24,7 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 	feedbackHandler := handlers.NewFeedbackHandler(queries)
 	subscriptionHandler := handlers.NewSubscriptionHandler(queries)
 	offHandler := handlers.NewOFFHandler(queries, draftRdb)
+	categoryHandler := handlers.NewCategoryHandler(queries)
 
 	authMw := handlers.AuthMiddleware(queries)
 
@@ -83,6 +84,20 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 			products.DELETE("/store/:id", authMw, productHandler.DeleteStoreProductSpecific)
 			products.DELETE("/:id", authMw, productHandler.DeleteProduct)
 			products.PUT("/:id", authMw, productHandler.UpdateProduct)
+		}
+
+		// Category routes
+		categories := api.Group("/categories")
+		{
+			categories.GET("/", categoryHandler.GetAllCategories)
+			categories.POST("/", authMw, categoryHandler.CreateCategory)
+		}
+
+		// Admin-only routes
+		admin := api.Group("/admin")
+		admin.Use(middleware.AdminOnly())
+		{
+			admin.GET("/uploads/recent", adminHandler.ListRecentUploads)
 		}
 
 		// Report routes

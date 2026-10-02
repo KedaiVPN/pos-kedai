@@ -32,6 +32,37 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 	return i, err
 }
 
+const getAllCategories = `-- name: GetAllCategories :many
+SELECT id, name, slug, is_active, created_at, updated_at FROM categories ORDER BY name ASC
+`
+
+func (q *Queries) GetAllCategories(ctx context.Context) ([]Category, error) {
+	rows, err := q.db.Query(ctx, getAllCategories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Category
+	for rows.Next() {
+		var i Category
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCategoryByName = `-- name: GetCategoryByName :one
 SELECT id, name, slug, is_active, created_at, updated_at FROM categories WHERE name = $1 LIMIT 1
 `

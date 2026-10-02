@@ -40,6 +40,7 @@ type Querier interface {
 	DeleteTransactionItemsByStore(ctx context.Context, storeID pgtype.UUID) error
 	DeleteTransactionsByStore(ctx context.Context, storeID pgtype.UUID) error
 	DeleteUser(ctx context.Context, id pgtype.UUID) error
+	GetAllCategories(ctx context.Context) ([]Category, error)
 	GetAllStoreTransactions(ctx context.Context, storeID pgtype.UUID) ([]Transaction, error)
 	GetAllStoreTransactionsByCashier(ctx context.Context, arg GetAllStoreTransactionsByCashierParams) ([]Transaction, error)
 	GetCashierReportById(ctx context.Context, arg GetCashierReportByIdParams) (CashierReport, error)

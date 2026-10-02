@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -625,4 +626,50 @@ func (h *AdminHandler) GetMasterProductStatus(c *gin.Context) {
 
 	isEnabled := val != "false"
 	c.JSON(http.StatusOK, gin.H{"is_enabled": isEnabled})
+}
+
+// ListRecentUploads returns a list of recently uploaded image filenames/URLs in /uploads
+func (h *AdminHandler) ListRecentUploads(c *gin.Context) {
+	uploadsDir := "uploads"
+	files, err := os.ReadDir(uploadsDir)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"files": []string{}})
+		return
+	}
+
+	type UploadFileInfo struct {
+		Name     string    `json:"name"`
+		URL      string    `json:"url"`
+		ModTime  time.Time `json:"mod_time"`
+	}
+
+	var imageFiles []UploadFileInfo
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(f.Name()))
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
+			info, err := f.Info()
+			if err == nil {
+				imageFiles = append(imageFiles, UploadFileInfo{
+					Name:    f.Name(),
+					URL:     fmt.Sprintf("/uploads/%s", f.Name()),
+					ModTime: info.ModTime(),
+				})
+			}
+		}
+	}
+
+	// Sort newest first
+	sort.Slice(imageFiles, func(i, j int) bool {
+		return imageFiles[i].ModTime.After(imageFiles[j].ModTime)
+	})
+
+	// Limit to top 50 files
+	if len(imageFiles) > 50 {
+		imageFiles = imageFiles[:50]
+	}
+
+	c.JSON(http.StatusOK, gin.H{"files": imageFiles})
 }
