@@ -395,7 +395,7 @@ fun EditAdminProductScreen(
                                         
                                         // Convert DTO to Map for UI with full URL
                                         val baseUrl = "https://api-go-v1.free-account.my.id"
-                                        serverPhotos = files.map { file ->
+                                        val mappedPhotos = files.map { file ->
                                             val fullUrl = if (file.url.startsWith("/")) "$baseUrl${file.url}" else file.url
                                             mapOf(
                                                 "name" to file.name,
@@ -403,16 +403,21 @@ fun EditAdminProductScreen(
                                                 "mod_time" to file.mod_time
                                             )
                                         }
-                                        android.util.Log.d("EditAdminProduct", "Converted serverPhotos: ${serverPhotos.size} items")
+                                        android.util.Log.d("EditAdminProduct", "Converted serverPhotos: ${mappedPhotos.size} items")
+                                        
+                                        // Update state atomically: assign photos first, then stop loading
+                                        serverPhotos = mappedPhotos
+                                        loadingServerPhotos = false
+                                        android.util.Log.d("EditAdminProduct", "State updated: serverPhotos.size=${serverPhotos.size}, loadingServerPhotos=$loadingServerPhotos")
                                     } else {
+                                        loadingServerPhotos = false
                                         android.util.Log.e("EditAdminProduct", "Response not successful: ${response.code()} - ${response.errorBody()?.string()}")
                                         android.widget.Toast.makeText(context, "Error ${response.code()}: ${response.message()}", android.widget.Toast.LENGTH_SHORT).show()
                                     }
                                 } catch (e: Exception) {
+                                    loadingServerPhotos = false
                                     android.util.Log.e("EditAdminProduct", "Exception fetching server photos", e)
                                     android.widget.Toast.makeText(context, "Gagal memuat foto server: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-                                } finally {
-                                    loadingServerPhotos = false
                                 }
                             }
                         }
