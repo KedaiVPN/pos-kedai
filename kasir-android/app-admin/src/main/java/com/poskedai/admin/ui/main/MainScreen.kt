@@ -145,7 +145,10 @@ fun MainScreen(onLogout: () -> Unit) {
                     onBackClick = { navController.popBackStack() },
                     onSuccess = {
                         navController.popBackStack()
-                    }
+                    },
+                    viewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                        key = "edit_product_${productJsonStr.hashCode()}"
+                    )
                 )
             }
             composable(BottomNavItem.Subscriptions.route) {

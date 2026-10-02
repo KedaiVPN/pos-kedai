@@ -393,11 +393,13 @@ fun EditAdminProductScreen(
                                         val files = uploadResponse?.files ?: emptyList()
                                         android.util.Log.d("EditAdminProduct", "Files count: ${files.size}")
                                         
-                                        // Convert DTO to Map for UI
+                                        // Convert DTO to Map for UI with full URL
+                                        val baseUrl = "https://api-go-v1.free-account.my.id"
                                         serverPhotos = files.map { file ->
+                                            val fullUrl = if (file.url.startsWith("/")) "$baseUrl${file.url}" else file.url
                                             mapOf(
                                                 "name" to file.name,
-                                                "url" to file.url,
+                                                "url" to fullUrl,
                                                 "mod_time" to file.mod_time
                                             )
                                         }
@@ -457,7 +459,7 @@ fun EditAdminProductScreen(
                         items(serverPhotos.size) { index ->
                             val photo = serverPhotos[index]
                             val url = photo["url"] ?: ""
-                            val filename = photo["filename"] ?: ""
+                            val filename = photo["name"] ?: ""
                             Card(
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier
