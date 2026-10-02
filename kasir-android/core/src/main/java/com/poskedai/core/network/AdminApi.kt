@@ -52,6 +52,17 @@ data class ToggleMasterProductRequest(
     val is_enabled: Boolean
 )
 
+data class AdminUploadFileDto(
+    val name: String = "",
+    val url: String = "",
+    val mod_time: String = ""
+)
+
+data class AdminRecentUploadsResponse(
+    val files: List<AdminUploadFileDto> = emptyList(),
+    val debug: Map<String, Any>? = null
+)
+
 // Open Food Facts DTOs
 data class OFFDraftDto(
     val barcode: String = "",
@@ -130,7 +141,7 @@ interface AdminApi {
     suspend fun approveDraft(@Body request: ApproveDraftRequest): Response<JsonObject>
 
     @GET("admin/uploads/recent")
-    suspend fun getRecentUploads(): Response<Map<String, List<Map<String, String>>>>
+    suspend fun getRecentUploads(): Response<AdminRecentUploadsResponse>
 
     @DELETE("admin/off/drafts/{barcode}")
     suspend fun rejectDraft(@Path("barcode") barcode: String): Response<JsonObject>

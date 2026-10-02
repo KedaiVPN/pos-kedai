@@ -384,12 +384,24 @@ fun EditAdminProductScreen(
                                     android.util.Log.d("EditAdminProduct", "Fetching recent uploads from server...")
                                     val response = com.poskedai.core.network.RetrofitClient.adminApi.getRecentUploads()
                                     android.util.Log.d("EditAdminProduct", "Response code: ${response.code()}")
-                                    android.util.Log.d("EditAdminProduct", "Response body: ${response.body()}")
                                     
                                     if (response.isSuccessful) {
-                                        val files = response.body()?.get("files") ?: emptyList()
+                                        val uploadResponse = response.body()
+                                        android.util.Log.d("EditAdminProduct", "Response body: $uploadResponse")
+                                        android.util.Log.d("EditAdminProduct", "Debug info: ${uploadResponse?.debug}")
+                                        
+                                        val files = uploadResponse?.files ?: emptyList()
                                         android.util.Log.d("EditAdminProduct", "Files count: ${files.size}")
-                                        serverPhotos = files
+                                        
+                                        // Convert DTO to Map for UI
+                                        serverPhotos = files.map { file ->
+                                            mapOf(
+                                                "name" to file.name,
+                                                "url" to file.url,
+                                                "mod_time" to file.mod_time
+                                            )
+                                        }
+                                        android.util.Log.d("EditAdminProduct", "Converted serverPhotos: ${serverPhotos.size} items")
                                     } else {
                                         android.util.Log.e("EditAdminProduct", "Response not successful: ${response.code()} - ${response.errorBody()?.string()}")
                                         android.widget.Toast.makeText(context, "Error ${response.code()}: ${response.message()}", android.widget.Toast.LENGTH_SHORT).show()
