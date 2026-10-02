@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Add
@@ -66,7 +67,10 @@ fun EditAdminProductScreen(
     var showScanner by remember { mutableStateOf(false) }
     var showPhotoBottomSheet by remember { mutableStateOf(false) }
     var showNewCategoryDialog by remember { mutableStateOf(false) }
+    var showServerPhotoDialog by remember { mutableStateOf(false) }
     var newCategoryInput by remember { mutableStateOf("") }
+    var serverPhotos by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
+    var loadingServerPhotos by remember { mutableStateOf(false) }
     
     // Camera Image Capture Launcher
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
@@ -363,8 +367,101 @@ fun EditAdminProductScreen(
                         }
                 )
 
+                ListItem(
+                    headlineContent = { Text("Pilih dari Server") },
+                    leadingContent = { Icon(Icons.Default.CloudDownload, contentDescription = null) },
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            showPhotoBottomSheet = false
+                            loadingServerPhotos = true
+                            showServerPhotoDialog = true
+                            // Fetch server photos
+                            kotlinx.coroutines.MainScope().launch {
+                                try {
+                                    val response = com.poskedai.core.network.RetrofitClient.adminApi.getRecentUploads()
+                                    if (response.isSuccessful) {
+                                        serverPhotos = response.body()?.get("files") ?: emptyList()
+                                    }
+                                } catch (e: Exception) {
+                                    android.widget.Toast.makeText(context, "Gagal memuat foto server: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                                } finally {
+                                    loadingServerPhotos = false
+                                }
+                            }
+                        }
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+
+    // Dialog Pilih Foto dari Server
+    if (showServerPhotoDialog) {
+        AlertDialog(
+            onDismissRequest = { showServerPhotoDialog = false },
+            title = { Text("Pilih Foto dari Server") },
+            text = {
+                if (loadingServerPhotos) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else if (serverPhotos.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Tidak ada foto ditemukan di server", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                        columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 350.dp)
+                    ) {
+                        items(serverPhotos.size) { index ->
+                            val photo = serverPhotos[index]
+                            val url = photo["url"] ?: ""
+                            val filename = photo["filename"] ?: ""
+                            Card(
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .aspectRatio(1f)
+                                    .clickable {
+                                        viewModel.updatePhotoUrl(url)
+                                        showServerPhotoDialog = false
+                                    }
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    coil.compose.AsyncImage(
+                                        model = url,
+                                        contentDescription = filename,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showServerPhotoDialog = false }) {
+                    Text("Tutup")
+                }
+            }
+        )
     }
 }

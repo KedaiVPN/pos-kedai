@@ -129,6 +129,9 @@ interface AdminApi {
     @POST("admin/off/drafts/approve")
     suspend fun approveDraft(@Body request: ApproveDraftRequest): Response<JsonObject>
 
+    @GET("admin/uploads/recent")
+    suspend fun getRecentUploads(): Response<Map<String, List<Map<String, String>>>>
+
     @DELETE("admin/off/drafts/{barcode}")
     suspend fun rejectDraft(@Path("barcode") barcode: String): Response<JsonObject>
 }
