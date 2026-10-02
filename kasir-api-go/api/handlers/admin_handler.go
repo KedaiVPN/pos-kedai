@@ -236,11 +236,49 @@ func (h *AdminHandler) ApproveProduct(c *gin.Context) {
 			categoryID = pgtype.UUID{Valid: false}
 		}
 
-		// Ensure photo_url is set
+		// Ensure photo_url is set or find orphaned upload
 		photoUrl := pendingProduct.ImageUrl
 		if !photoUrl.Valid || photoUrl.String == "" {
-			log.Printf("Warning: Pending product %v has no photo_url. This should not happen with client-side validation.\n", pendingProduct.ID)
-			photoUrl = pgtype.Text{String: "", Valid: false}
+			log.Printf("Warning: Pending product %v (%v) has no photo_url. Attempting to find orphaned upload...\n", pendingProduct.ID, pendingProduct.Name)
+			
+			// Try to find recently uploaded image file in uploads directory
+			uploadsDir := "uploads"
+			files, err := os.ReadDir(uploadsDir)
+			if err == nil {
+				// Look for image files uploaded around the time this pending product was created
+				pendingCreatedAt := pendingProduct.CreatedAt.Time
+				for _, file := range files {
+					if file.IsDir() {
+						continue
+					}
+					
+					// Check if it's an image file
+					ext := strings.ToLower(filepath.Ext(file.Name()))
+					if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" {
+						continue
+					}
+					
+					// Get file info
+					info, err := file.Info()
+					if err != nil {
+						continue
+					}
+					
+					// Check if file was created within 5 minutes of pending product creation
+					timeDiff := info.ModTime().Sub(pendingCreatedAt).Abs()
+					if timeDiff < 5*time.Minute {
+						foundUrl := fmt.Sprintf("/uploads/%s", file.Name())
+						log.Printf("Found potential orphaned upload: %v (created %v, pending created %v)\n", foundUrl, info.ModTime(), pendingCreatedAt)
+						photoUrl = pgtype.Text{String: foundUrl, Valid: true}
+						break
+					}
+				}
+			}
+			
+			// If still no photo found, set to empty
+			if !photoUrl.Valid || photoUrl.String == "" {
+				photoUrl = pgtype.Text{String: "", Valid: false}
+			}
 		}
 
 		// Create master product
