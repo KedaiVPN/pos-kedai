@@ -22,8 +22,8 @@ import (
 
 const (
 	DraftHashKey = "off:drafts"
-	OFFAPI       = "https://id.openfoodfacts.org/api/v2"
-	OFFUserAgent = "PosKedaiAdmin - Web - Version 1.0 - admin@poskedai.my.id"
+	OFFAPI       = "https://id.openfoodfacts.org/api/v3"
+	OFFUserAgent = "PosKedaiAdmin/1.0 (Android; Linux) admin@poskedai.my.id"
 )
 
 // IndonesianPopularBrands - Daftar brand FMCG terlaris di Indonesia (Kantar 2024-2025)
@@ -76,13 +76,17 @@ func downloadAndSaveImage(imageURL, barcode string) (string, error) {
 		return "", fmt.Errorf("invalid URL")
 	}
 	hostname := strings.ToLower(parsed.Hostname())
-	isTrustedOFF := strings.HasSuffix(hostname, "openfoodfacts.org")
+	isTrustedOFF := strings.HasSuffix(hostname, "openfoodfacts.org") || strings.HasSuffix(hostname, "openfoodfacts.net")
 
 	// Anti-SSRF: tolak URL ke localhost / private network / scheme non-HTTP.
 	// Kecuali untuk trusted public CDN seperti OFF.
 	if !isTrustedOFF && !IsSafeExternalURL(imageURL) {
 		return "", fmt.Errorf("unsafe image URL rejected")
 	}
+
+	// Rate limit throttling: OFF membatasi 10 req/min untuk search, hindari spam image download.
+	// Delay 700ms antar image download agar tidak kena global rate limiter OFF.
+	time.Sleep(700 * time.Millisecond)
 
 	// Cegah path traversal lewat barcode saat dipakai di nama file.
 	safeBarcode := SanitizeBarcode(barcode)
