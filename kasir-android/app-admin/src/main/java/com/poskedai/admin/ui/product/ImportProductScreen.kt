@@ -97,6 +97,22 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
+                        onClick = { viewModel.fetchFromOFF() },
+                        enabled = !isFetching,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (isFetching) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text(if (isFetching) "Menarik..." else "Tarik dari OFF (5 Produk)")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
                         onClick = { viewModel.fetchFromS3() },
                         enabled = !isFetching,
                         modifier = Modifier.weight(1f)
@@ -109,7 +125,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(if (isFetching) "Menarik..." else "Tarik 25 Produk (S3 Dump)")
+                        Text(if (isFetching) "Menarik..." else "Tarik S3 (25 Produk)")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = { viewModel.loadDrafts() }) {
@@ -127,7 +143,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "Sedang mengunduh 25 produk & foto dari S3 dump...",
+                        text = "Sedang mengunduh produk & foto...",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold
                     )

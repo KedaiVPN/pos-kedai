@@ -22,8 +22,8 @@ import (
 
 const (
 	DraftHashKey = "off:drafts"
-	OFFAPI       = "https://id.openfoodfacts.org/api/v3"
-	OFFUserAgent = "PosKedaiAdmin/1.0 (Android; Linux) kontak@poskedai.com"
+	OFFAPI       = "https://id.openfoodfacts.org/api/v2"
+	OFFUserAgent = "PosKedaiAdmin - WebApp - Version 1.0 - admin@poskedai.my.id"
 )
 
 // IndonesianPopularBrands - Daftar brand FMCG terlaris di Indonesia (Kantar 2024-2025)
