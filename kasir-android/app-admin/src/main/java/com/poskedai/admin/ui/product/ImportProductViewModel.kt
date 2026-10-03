@@ -32,6 +32,11 @@ class ImportProductViewModel : ViewModel() {
     private val _currentPage = MutableStateFlow(1)
     val currentPage: StateFlow<Int> = _currentPage.asStateFlow()
 
+    private val _draftPage = MutableStateFlow(1)
+    val draftPage: StateFlow<Int> = _draftPage.asStateFlow()
+
+    val draftPageSize = 10
+
     init {
         loadDrafts()
     }
@@ -92,7 +97,7 @@ class ImportProductViewModel : ViewModel() {
             _isFetching.value = true
             try {
                 val page = _currentPage.value
-                val response = RetrofitClient.adminApi.fetchFromS3(page = page, pageSize = 25)
+                val response = RetrofitClient.adminApi.fetchFromS3(page = page, pageSize = 5)
                 if (response.isSuccessful) {
                     val body = response.body()
                     val inserted = body?.inserted ?: 0
@@ -163,5 +168,15 @@ class ImportProductViewModel : ViewModel() {
 
     fun clearErrorDialog() {
         _errorDialogMessage.value = null
+    }
+
+    fun nextDraftPage() {
+        _draftPage.value = _draftPage.value + 1
+    }
+
+    fun prevDraftPage() {
+        if (_draftPage.value > 1) {
+            _draftPage.value = _draftPage.value - 1
+        }
     }
 }

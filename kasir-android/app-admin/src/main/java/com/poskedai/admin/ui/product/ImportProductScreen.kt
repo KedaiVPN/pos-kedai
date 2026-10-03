@@ -30,6 +30,8 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
     val actionMessage by viewModel.actionMessage.collectAsState()
     val errorDialogMessage by viewModel.errorDialogMessage.collectAsState()
     val currentPage by viewModel.currentPage.collectAsState()
+    val draftPage by viewModel.draftPage.collectAsState()
+    val draftPageSize = viewModel.draftPageSize
     val context = LocalContext.current
 
     LaunchedEffect(actionMessage) {
@@ -125,7 +127,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(if (isFetching) "Menarik..." else "Tarik S3 (25 Produk)")
+                        Text(if (isFetching) "Menarik..." else "Tarik dari S3 (5 Produk)")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = { viewModel.loadDrafts() }) {
@@ -190,17 +192,53 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                         }
                     }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(state.drafts, key = { it.barcode }) { draft ->
-                            DraftCard(
-                                draft = draft,
-                                onApprove = { showApproveDialog = draft },
-                                onReject = { viewModel.rejectDraft(draft.barcode) }
+                    // Pagination logic
+                    val totalPages = (state.drafts.size + draftPageSize - 1) / draftPageSize
+                    val startIndex = (draftPage - 1) * draftPageSize
+                    val endIndex = minOf(startIndex + draftPageSize, state.drafts.size)
+                    val paginatedDrafts = state.drafts.subList(startIndex, endIndex)
+
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Pagination controls
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = { viewModel.prevDraftPage() },
+                                enabled = draftPage > 1
+                            ) {
+                                Text("Prev")
+                            }
+                            Text(
+                                text = "Halaman $draftPage dari $totalPages",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
                             )
+                            Button(
+                                onClick = { viewModel.nextDraftPage() },
+                                enabled = draftPage < totalPages
+                            ) {
+                                Text("Next")
+                            }
+                        }
+
+                        // List draft (paginated)
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(paginatedDrafts, key = { it.barcode }) { draft ->
+                                DraftCard(
+                                    draft = draft,
+                                    onApprove = { showApproveDialog = draft },
+                                    onReject = { viewModel.rejectDraft(draft.barcode) }
+                                )
+                            }
                         }
                     }
                 }

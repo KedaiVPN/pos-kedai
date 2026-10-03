@@ -22,7 +22,7 @@ const (
 // FetchFromS3Dump mengambil produk Indonesia dari S3 dump OFF (fallback saat API OFF down)
 func (h *OFFHandler) FetchFromS3Dump(c *gin.Context) {
 	pageStr := c.DefaultQuery("page", "1")
-	pageSizeStr := c.DefaultQuery("page_size", "25")
+	pageSizeStr := c.DefaultQuery("page_size", "5")
 
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {
@@ -30,7 +30,7 @@ func (h *OFFHandler) FetchFromS3Dump(c *gin.Context) {
 	}
 	pageSize, err := strconv.Atoi(pageSizeStr)
 	if err != nil || pageSize < 1 || pageSize > 50 {
-		pageSize = 25
+		pageSize = 5
 	}
 
 	// Stream dari S3 dump
