@@ -74,7 +74,7 @@ func UploadImage(c *gin.Context) {
 	// Normalisasi ekstensi ke huruf kecil supaya tidak ada file .PNG / .JPG
 	// yang lolos dengan casing aneh lalu dieksekusi sebagai skrip.
 	extension := strings.ToLower(filepath.Ext(file.Filename))
-	
+
 	// Cek apakah ada barcode yang disertakan dalam form-data atau query param
 	barcode := strings.TrimSpace(c.PostForm("barcode"))
 	if barcode == "" {

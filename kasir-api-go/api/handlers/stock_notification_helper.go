@@ -20,7 +20,7 @@ func CheckAndSendStockNotification(ctx context.Context, queries *db.Queries, sto
 
 	// Cek apakah notifikasi diaktifkan dan stok kurang dari atau sama dengan minimum
 	if !storeProduct.IsStockNotificationEnabled.Bool || storeProduct.Stock > storeProduct.MinStock || storeProduct.Stock == -1 {
-	    log.Printf("Notifikasi di-skip. Status produk: AktifNotif=%v, Stok=%d, MinStok=%d\n", storeProduct.IsStockNotificationEnabled.Bool, storeProduct.Stock, storeProduct.MinStock)
+		log.Printf("Notifikasi di-skip. Status produk: AktifNotif=%v, Stok=%d, MinStok=%d\n", storeProduct.IsStockNotificationEnabled.Bool, storeProduct.Stock, storeProduct.MinStock)
 		return
 	}
 

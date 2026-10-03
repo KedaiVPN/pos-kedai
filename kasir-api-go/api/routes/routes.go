@@ -123,7 +123,7 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 		api.GET("/ws", wsManager.HandleConnections)
 
 		// Auth (public, rawan brute-force) — limit ketat per IP+path.
-		api.POST("/login", middleware.RateLimit(rdb, 10, time.Minute), authHandler.Login) // Used by Admin
+		api.POST("/login", middleware.RateLimit(rdb, 10, time.Minute), authHandler.Login)      // Used by Admin
 		api.POST("/auth/login", middleware.RateLimit(rdb, 10, time.Minute), authHandler.Login) // Used by Store
 		api.POST("/auth/register-store", middleware.RateLimit(rdb, 5, time.Minute), authHandler.RegisterStore)
 		api.POST("/auth/verify-otp", middleware.RateLimit(rdb, 10, time.Minute), authHandler.VerifyOTP)

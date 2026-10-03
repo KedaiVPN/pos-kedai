@@ -155,8 +155,8 @@ func (h *StoreHandler) UploadStoreLogo(c *gin.Context) {
 
 	// Update store with logo URL
 	arg := db.UpdateStoreParams{
-		ID:        pgtype.UUID{Bytes: [16]byte(storeIDBytes), Valid: true},
-		LogoUrl:   pgtype.Text{String: imageURL, Valid: true},
+		ID:      pgtype.UUID{Bytes: [16]byte(storeIDBytes), Valid: true},
+		LogoUrl: pgtype.Text{String: imageURL, Valid: true},
 	}
 
 	arg.StoreName = store.StoreName
@@ -170,7 +170,7 @@ func (h *StoreHandler) UploadStoreLogo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Logo uploaded successfully",
+		"message":  "Logo uploaded successfully",
 		"logo_url": imageURL,
 	})
 }

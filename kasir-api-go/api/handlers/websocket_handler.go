@@ -67,7 +67,7 @@ func (wm *WebSocketManager) HandleConnections(c *gin.Context) {
 }
 
 type ProductNotification struct {
-	Type    string             `json:"type"`
+	Type    string            `json:"type"`
 	Product db.PendingProduct `json:"product"`
 }
 

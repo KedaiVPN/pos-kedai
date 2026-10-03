@@ -61,6 +61,7 @@ const MaxUploadSize int64 = 3 * 1024 * 1024
 
 // IsSafeExternalURL memeriksa apakah URL aman untuk di-request dari server (anti-SSRF).
 // Menolak host localhost, private network (RFC 1918, link-local, loopback).
+// Trusted public services (OFF) skip DNS lookup.
 func IsSafeExternalURL(rawURL string) bool {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
@@ -77,13 +78,21 @@ func IsSafeExternalURL(rawURL string) bool {
 		return false
 	}
 
-	// Blokir langsung localhost dan domain internal
 	lowerHost := strings.ToLower(hostname)
+
+	// Trust public services — no DNS lookup needed.
+	if strings.HasSuffix(lowerHost, "openfoodfacts.org") ||
+		strings.HasSuffix(lowerHost, "googleapis.com") ||
+		strings.HasSuffix(lowerHost, "cloudinary.com") {
+		return true
+	}
+
+	// Blokir langsung localhost dan domain internal
 	if lowerHost == "localhost" || strings.HasSuffix(lowerHost, ".local") || strings.HasSuffix(lowerHost, ".internal") {
 		return false
 	}
 
-	// Resolve IP address
+	// Resolve IP address untuk URL lain yang tidak terpercaya
 	ips, err := net.LookupIP(hostname)
 	if err != nil || len(ips) == 0 {
 		return false

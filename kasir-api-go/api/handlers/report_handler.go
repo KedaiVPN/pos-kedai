@@ -124,9 +124,9 @@ func (h *ReportHandler) GetStoreReports(c *gin.Context) {
 		return
 	}
 
-    if reports == nil {
-        reports = []db.CashierReport{}
-    }
+	if reports == nil {
+		reports = []db.CashierReport{}
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"reports": reports,

@@ -41,10 +41,10 @@ func (h *ProductHandler) GetStockReport(c *gin.Context) {
 
 	var response []StockReportResponse
 	for _, p := range products {
-	    // Hanya tampilkan produk yang notifikasi stok-nya aktif DAN stoknya sudah mencapai batas minimal (atau habis)
-	    if !p.IsStockNotificationEnabled.Bool || p.Stock > p.MinStock || p.Stock == -1 {
-	        continue
-	    }
+		// Hanya tampilkan produk yang notifikasi stok-nya aktif DAN stoknya sudah mencapai batas minimal (atau habis)
+		if !p.IsStockNotificationEnabled.Bool || p.Stock > p.MinStock || p.Stock == -1 {
+			continue
+		}
 
 		status := "Aman"
 		if p.Stock == 0 {

@@ -107,19 +107,22 @@ func downloadAndSaveImage(imageURL, barcode string) (string, error) {
 		return "", fmt.Errorf("failed to fetch image: status %d", resp.StatusCode)
 	}
 
-	// Batasi ukuran unduhan (disk exhaustion guard).
-	limited := io.LimitReader(resp.Body, MaxUploadSize+1)
-	data, err := io.ReadAll(limited)
-	if err != nil {
+	// Stream langsung ke disk dengan check 512 byte pertama
+	uploadDir := "uploads"
+	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
 		return "", err
 	}
-	if int64(len(data)) > MaxUploadSize {
-		return "", fmt.Errorf("image exceeds max size %d bytes", MaxUploadSize)
+
+	// Baca 512 byte pertama untuk sniff type
+	head := make([]byte, 512)
+	n, err := io.ReadFull(resp.Body, head)
+	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
+		return "", fmt.Errorf("failed to read image head: %w", err)
 	}
 
-	// Validasi konten benar-benar gambar (MIME sniffing), bukan percaya ekstensi URL.
-	ext := ""
-	switch http.DetectContentType(data) {
+	ext := ".jpg"
+	mimeType := http.DetectContentType(head[:n])
+	switch mimeType {
 	case "image/jpeg":
 		ext = ".jpg"
 	case "image/png":
@@ -127,18 +130,29 @@ func downloadAndSaveImage(imageURL, barcode string) (string, error) {
 	case "image/webp":
 		ext = ".webp"
 	default:
-		return "", fmt.Errorf("downloaded content is not a supported image")
-	}
-
-	uploadDir := "uploads"
-	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
-		return "", err
+		// Jika bukan image, tolak
+		return "", fmt.Errorf("downloaded content is not a supported image (%s)", mimeType)
 	}
 
 	filename := fmt.Sprintf("off_%s_%d%s", safeBarcode, time.Now().Unix(), ext)
 	filePath := filepath.Join(uploadDir, filename)
 
-	if err := os.WriteFile(filePath, data, 0o644); err != nil {
+	out, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	// Tulis header 512 bytes dulu
+	if _, err := out.Write(head[:n]); err != nil {
+		os.Remove(filePath)
+		return "", err
+	}
+
+	// Stream sisanya sampai habis (capped MaxUploadSize)
+	limited := io.LimitReader(resp.Body, MaxUploadSize)
+	if _, err := io.Copy(out, limited); err != nil {
+		os.Remove(filePath)
 		return "", err
 	}
 

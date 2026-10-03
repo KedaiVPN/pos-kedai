@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"kasir-api-go/db"
 	"kasir-api-go/api"
+	"kasir-api-go/db"
 )
 
 type TransactionHandler struct {
@@ -174,11 +174,11 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 		return
 	}
 
-    // Call notification check AFTER commit to ensure the background task reads the correct updated stock
-    for _, item := range req.Items {
+	// Call notification check AFTER commit to ensure the background task reads the correct updated stock
+	for _, item := range req.Items {
 		spID, _ := uuid.Parse(item.StoreProductID)
-        go CheckAndSendStockNotification(context.Background(), h.queries, pgtype.UUID{Bytes: spID, Valid: true})
-    }
+		go CheckAndSendStockNotification(context.Background(), h.queries, pgtype.UUID{Bytes: spID, Valid: true})
+	}
 
 	// Send Push Notification to Owners
 	go func() {
@@ -207,10 +207,10 @@ func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
 }
 
 type DashboardStatsResponse struct {
-	TotalRevenue      int64             `json:"total_revenue"`
-	TotalTransactions int32             `json:"total_transactions"`
-	TotalProducts     int32             `json:"total_products"`
-	NetProfit         int64             `json:"net_profit"`
+	TotalRevenue       int64            `json:"total_revenue"`
+	TotalTransactions  int32            `json:"total_transactions"`
+	TotalProducts      int32            `json:"total_products"`
+	NetProfit          int64            `json:"net_profit"`
 	RecentTransactions []db.Transaction `json:"recent_transactions"`
 }
 
@@ -287,10 +287,10 @@ func (h *TransactionHandler) GetDashboardStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, DashboardStatsResponse{
-		TotalRevenue:      statsTotalRevenue,
-		TotalTransactions: statsTotalTransactions,
-		TotalProducts:     statsTotalProducts,
-		NetProfit:         statsNetProfit,
+		TotalRevenue:       statsTotalRevenue,
+		TotalTransactions:  statsTotalTransactions,
+		TotalProducts:      statsTotalProducts,
+		NetProfit:          statsNetProfit,
 		RecentTransactions: recentTx,
 	})
 }

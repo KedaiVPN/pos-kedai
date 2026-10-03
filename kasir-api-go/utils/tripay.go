@@ -64,24 +64,24 @@ type TripayCreateTransactionRequest struct {
 }
 
 type TripayTransactionResponseData struct {
-	Reference       string              `json:"reference"`
-	MerchantRef     string              `json:"merchant_ref"`
-	PaymentMethod   string              `json:"payment_method"`
-	PaymentName     string              `json:"payment_name"`
-	CustomerName    string              `json:"customer_name"`
-	Amount          int64               `json:"amount"`
-	FeeMerchant     int64               `json:"fee_merchant"`
-	FeeCustomer     int64               `json:"fee_customer"`
-	TotalFee        int64               `json:"total_fee"`
-	AmountReceived  int64               `json:"amount_received"`
-	PayCode         string              `json:"pay_code"`
-	QrString        string              `json:"qr_string"`
-	QrURL           string              `json:"qr_url"`
-	CheckoutURL     string              `json:"checkout_url"`
-	Status          string              `json:"status"`
-	PaidAt          *int64              `json:"paid_at"`
-	ExpiredTime     int64               `json:"expired_time"`
-	Instructions    []TripayInstruction `json:"instructions"`
+	Reference      string              `json:"reference"`
+	MerchantRef    string              `json:"merchant_ref"`
+	PaymentMethod  string              `json:"payment_method"`
+	PaymentName    string              `json:"payment_name"`
+	CustomerName   string              `json:"customer_name"`
+	Amount         int64               `json:"amount"`
+	FeeMerchant    int64               `json:"fee_merchant"`
+	FeeCustomer    int64               `json:"fee_customer"`
+	TotalFee       int64               `json:"total_fee"`
+	AmountReceived int64               `json:"amount_received"`
+	PayCode        string              `json:"pay_code"`
+	QrString       string              `json:"qr_string"`
+	QrURL          string              `json:"qr_url"`
+	CheckoutURL    string              `json:"checkout_url"`
+	Status         string              `json:"status"`
+	PaidAt         *int64              `json:"paid_at"`
+	ExpiredTime    int64               `json:"expired_time"`
+	Instructions   []TripayInstruction `json:"instructions"`
 }
 
 type TripayFeeDetail struct {
