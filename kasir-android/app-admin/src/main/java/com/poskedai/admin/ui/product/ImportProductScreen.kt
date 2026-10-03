@@ -193,10 +193,11 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                     }
                 } else {
                     // Pagination logic
-                    val totalPages = (state.drafts.size + draftPageSize - 1) / draftPageSize
-                    val startIndex = (draftPage - 1) * draftPageSize
+                    val totalPages = maxOf(1, (state.drafts.size + draftPageSize - 1) / draftPageSize)
+                    val safeDraftPage = draftPage.coerceIn(1, totalPages)
+                    val startIndex = (safeDraftPage - 1) * draftPageSize
                     val endIndex = minOf(startIndex + draftPageSize, state.drafts.size)
-                    val paginatedDrafts = state.drafts.subList(startIndex, endIndex)
+                    val paginatedDrafts = if (startIndex < state.drafts.size) state.drafts.subList(startIndex, endIndex) else emptyList()
 
                     Column(modifier = Modifier.fillMaxSize()) {
                         // Pagination controls
@@ -209,18 +210,18 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                         ) {
                             Button(
                                 onClick = { viewModel.prevDraftPage() },
-                                enabled = draftPage > 1
+                                enabled = safeDraftPage > 1
                             ) {
                                 Text("Prev")
                             }
                             Text(
-                                text = "Halaman $draftPage dari $totalPages",
+                                text = "Halaman $safeDraftPage dari $totalPages",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Button(
                                 onClick = { viewModel.nextDraftPage() },
-                                enabled = draftPage < totalPages
+                                enabled = safeDraftPage < totalPages
                             ) {
                                 Text("Next")
                             }
