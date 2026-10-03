@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.poskedai.core.network.OFFDraftDto
+import com.poskedai.core.network.RetrofitClient
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 
@@ -228,8 +229,14 @@ fun DraftCard(
                         modifier = Modifier.size(80.dp),
                         contentAlignment = Alignment.Center
                     ) {
+                        val imageUrl = if (draft.image_url.startsWith("/")) {
+                            "${RetrofitClient.IMAGE_BASE_URL}${draft.image_url}"
+                        } else {
+                            draft.image_url
+                        }
+                        
                         coil.compose.AsyncImage(
-                            model = draft.image_url,
+                            model = imageUrl,
                             contentDescription = "Foto Produk",
                             modifier = Modifier.size(80.dp),
                             contentScale = ContentScale.Crop,
@@ -359,8 +366,13 @@ fun ApproveDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Preview image
                 if (draft.image_url.isNotEmpty()) {
+                    val previewUrl = if (draft.image_url.startsWith("/")) {
+                        "${RetrofitClient.IMAGE_BASE_URL}${draft.image_url}"
+                    } else {
+                        draft.image_url
+                    }
                     AsyncImage(
-                        model = draft.image_url,
+                        model = previewUrl,
                         contentDescription = "Preview",
                         modifier = Modifier.fillMaxWidth().height(120.dp),
                         contentScale = ContentScale.Fit
