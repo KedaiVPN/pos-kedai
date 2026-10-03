@@ -67,6 +67,11 @@ fun AddProductScreen(
     val isSuccess by viewModel.isSuccess.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val formState by viewModel.formState.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+
+    var categoryDropdownExpanded by remember { mutableStateOf(false) }
+    var showNewCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryInput by remember { mutableStateOf("") }
 
     var generatedBarcodeBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
@@ -252,12 +257,64 @@ fun AddProductScreen(
                 )
             }
 
-            OutlinedTextField(
-                value = formState.category,
-                onValueChange = { v -> viewModel.updateFormState { it.copy(category = v) } },
-                label = { Text("Kategori Produk") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    ExposedDropdownMenuBox(
+                        expanded = categoryDropdownExpanded,
+                        onExpandedChange = { categoryDropdownExpanded = !categoryDropdownExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = formState.category,
+                            onValueChange = {},
+                            label = { Text("Kategori Produk") },
+                            readOnly = true,
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(
+                                    expanded = categoryDropdownExpanded
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = categoryDropdownExpanded,
+                            onDismissRequest = { categoryDropdownExpanded = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (categories.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Belum ada kategori") },
+                                    enabled = false
+                                )
+                            } else {
+                                categories.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(cat) },
+                                        onClick = {
+                                            viewModel.updateFormState { it.copy(category = cat) }
+                                            categoryDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                            DropdownMenuItem(
+                                text = { Text("+ Buat Kategori Baru...") },
+                                onClick = {
+                                    showNewCategoryDialog = true
+                                    categoryDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             // Stock Toggle Section
             Card(
@@ -441,5 +498,42 @@ fun AddProductScreen(
                 }
             }
         }
+    }
+
+    if (showNewCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewCategoryDialog = false },
+            title = { Text("Buat Kategori Baru") },
+            text = {
+                OutlinedTextField(
+                    value = newCategoryInput,
+                    onValueChange = { newCategoryInput = it },
+                    label = { Text("Nama Kategori") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newCategoryInput.isNotBlank()) {
+                            viewModel.createNewCategory(newCategoryInput.trim())
+                            newCategoryInput = ""
+                            showNewCategoryDialog = false
+                        }
+                    }
+                ) {
+                    Text("Simpan")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    newCategoryInput = ""
+                    showNewCategoryDialog = false
+                }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 }

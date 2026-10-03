@@ -39,6 +39,30 @@ class AddProductViewModel(private val repository: ProductRepository) : ViewModel
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _categories = MutableStateFlow<List<String>>(emptyList())
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
+
+    init {
+        loadCategories()
+    }
+
+    fun loadCategories() {
+        viewModelScope.launch {
+            val cats = repository.getStoreCategories()
+            _categories.value = cats
+        }
+    }
+
+    fun createNewCategory(name: String) {
+        viewModelScope.launch {
+            val success = repository.createStoreCategory(name)
+            if (success) {
+                loadCategories()
+                updateFormState { it.copy(category = name) }
+            }
+        }
+    }
+
     fun resetState() {
         _isSuccess.value = false
         _errorMessage.value = null

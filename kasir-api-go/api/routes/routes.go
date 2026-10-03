@@ -25,6 +25,7 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 	subscriptionHandler := handlers.NewSubscriptionHandler(queries)
 	offHandler := handlers.NewOFFHandler(queries, draftRdb)
 	categoryHandler := handlers.NewCategoryHandler(queries)
+	storeCategoryHandler := handlers.NewStoreCategoryHandler(queries)
 
 	authMw := handlers.AuthMiddleware(queries)
 
@@ -91,6 +92,14 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 		{
 			categories.GET("/", categoryHandler.GetAllCategories)
 			categories.POST("/", authMw, categoryHandler.CreateCategory)
+		}
+
+		// Store Category routes
+		storeCategories := api.Group("/store/categories")
+		storeCategories.Use(authMw)
+		{
+			storeCategories.GET("/", storeCategoryHandler.GetStoreCategories)
+			storeCategories.POST("/", storeCategoryHandler.CreateStoreCategory)
 		}
 
 		// Report routes

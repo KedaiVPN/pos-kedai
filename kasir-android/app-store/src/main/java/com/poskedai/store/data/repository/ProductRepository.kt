@@ -35,6 +35,24 @@ class ProductRepository(
 
     val allProducts: Flow<List<ProductEntity>> = productDao.getAllProducts()
 
+    suspend fun getStoreCategories(): List<String> {
+        return try {
+            val response = RetrofitClient.productApi.getStoreCategories()
+            response.mapNotNull { it["name"] as? String }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun createStoreCategory(name: String): Boolean {
+        return try {
+            RetrofitClient.productApi.createStoreCategory(mapOf("name" to name))
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     suspend fun reduceStockLocally(productId: String, quantity: Int) {
         productDao.reduceStock(productId, quantity)
     }
