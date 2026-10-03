@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
@@ -258,7 +257,7 @@ fun DraftCard(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = androidx.compose.material.icons.filled.BrokenImage,
+                                    imageVector = Icons.Default.Close,
                                     contentDescription = "Foto Gagal",
                                     tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(24.dp)
