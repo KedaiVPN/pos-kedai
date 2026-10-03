@@ -1,9 +1,11 @@
 package com.poskedai.admin.ui.product
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
@@ -26,6 +28,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsState()
     val isFetching by viewModel.isFetching.collectAsState()
     val actionMessage by viewModel.actionMessage.collectAsState()
+    val errorDialogMessage by viewModel.errorDialogMessage.collectAsState()
     val currentPage by viewModel.currentPage.collectAsState()
     val context = LocalContext.current
 
@@ -50,6 +53,20 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                     unit = unit
                 )
                 showApproveDialog = null
+            }
+        )
+    }
+
+    // Error Dialog Modal
+    if (errorDialogMessage != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.clearErrorDialog() },
+            title = { Text("Gagal Menarik dari Open Food Facts") },
+            text = { Text(errorDialogMessage!!) },
+            confirmButton = {
+                Button(onClick = { viewModel.clearErrorDialog() }) {
+                    Text("Mengerti")
+                }
             }
         )
     }
@@ -102,11 +119,29 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
             }
         }
 
+        // Loading Progress Banner
+        if (isFetching) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Sedang mengunduh 25 produk & foto dari Open Food Facts...",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+        }
+
         // Draft count
         when (val state = uiState) {
             is ImportProductState.Success -> {
                 Text(
-                    text = "📦 Draft antrean: ${state.drafts.size} produk",
+                    text = "Draft antrean: ${state.drafts.size} produk",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -185,14 +220,52 @@ fun DraftCard(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                // Image
+                // Image dengan loading & error state
                 if (draft.image_url.isNotEmpty()) {
-                    AsyncImage(
-                        model = draft.image_url,
-                        contentDescription = "Foto Produk",
+                    var isImageLoading by remember(draft.image_url) { mutableStateOf(true) }
+                    var isImageError by remember(draft.image_url) { mutableStateOf(false) }
+
+                    Box(
                         modifier = Modifier.size(80.dp),
-                        contentScale = ContentScale.Crop
-                    )
+                        contentAlignment = Alignment.Center
+                    ) {
+                        coil.compose.AsyncImage(
+                            model = draft.image_url,
+                            contentDescription = "Foto Produk",
+                            modifier = Modifier.size(80.dp),
+                            contentScale = ContentScale.Crop,
+                            onLoading = { isImageLoading = true },
+                            onSuccess = { isImageLoading = false },
+                            onError = {
+                                isImageLoading = false
+                                isImageError = true
+                            }
+                        )
+
+                        // Loading shimmer
+                        if (isImageLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        // Error overlay
+                        if (isImageError) {
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = androidx.compose.material.icons.filled.BrokenImage,
+                                    contentDescription = "Foto Gagal",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                 }
 

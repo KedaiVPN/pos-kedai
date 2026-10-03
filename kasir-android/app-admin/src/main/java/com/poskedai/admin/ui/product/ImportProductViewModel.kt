@@ -26,6 +26,9 @@ class ImportProductViewModel : ViewModel() {
     private val _actionMessage = MutableStateFlow<String?>(null)
     val actionMessage: StateFlow<String?> = _actionMessage.asStateFlow()
 
+    private val _errorDialogMessage = MutableStateFlow<String?>(null)
+    val errorDialogMessage: StateFlow<String?> = _errorDialogMessage.asStateFlow()
+
     private val _currentPage = MutableStateFlow(1)
     val currentPage: StateFlow<Int> = _currentPage.asStateFlow()
 
@@ -64,10 +67,20 @@ class ImportProductViewModel : ViewModel() {
                     _currentPage.value = page + 1
                     loadDrafts()
                 } else {
-                    _actionMessage.value = "Gagal tarik dari OFF: ${response.code()}"
+                    // Error spesifik berdasarkan HTTP code
+                    val errorMsg = when (response.code()) {
+                        503 -> "Layanan katalog sedang sibuk atau mengalami lonjakan trafik. Silakan coba lagi beberapa saat lagi."
+                        429 -> "Permintaan sedang terlalu banyak. Tunggu beberapa menit sebelum mencoba lagi."
+                        else -> "Produk belum dapat ditarik saat ini. Silakan coba lagi beberapa saat lagi."
+                    }
+                    _errorDialogMessage.value = errorMsg
                 }
+            } catch (e: java.net.UnknownHostException) {
+                _errorDialogMessage.value = "Tidak dapat terhubung ke Open Food Facts. Periksa koneksi internet Anda."
+            } catch (e: java.net.SocketTimeoutException) {
+                _errorDialogMessage.value = "Koneksi ke Open Food Facts timeout. Server mungkin sedang lambat, coba lagi dalam beberapa saat."
             } catch (e: Exception) {
-                _actionMessage.value = "Error: ${e.message}"
+                _errorDialogMessage.value = "Produk belum dapat ditarik saat ini. Silakan coba lagi beberapa saat lagi."
             } finally {
                 _isFetching.value = false
             }
@@ -114,5 +127,9 @@ class ImportProductViewModel : ViewModel() {
 
     fun clearActionMessage() {
         _actionMessage.value = null
+    }
+
+    fun clearErrorDialog() {
+        _errorDialogMessage.value = null
     }
 }
