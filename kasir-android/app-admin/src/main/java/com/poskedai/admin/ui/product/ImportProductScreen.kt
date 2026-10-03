@@ -31,6 +31,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
     val errorDialogMessage by viewModel.errorDialogMessage.collectAsState()
     val currentPage by viewModel.currentPage.collectAsState()
     val draftPage by viewModel.draftPage.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val draftPageSize = viewModel.draftPageSize
     val context = LocalContext.current
 
@@ -46,6 +47,10 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
     if (showApproveDialog != null) {
         ApproveDialog(
             draft = showApproveDialog!!,
+            availableCategories = categories,
+            onCreateCategory = { name, onCreated ->
+                viewModel.createNewCategory(name, onCreated)
+            },
             onDismiss = { showApproveDialog = null },
             onApprove = { name, categoryId, unit ->
                 viewModel.approveDraft(
@@ -392,6 +397,8 @@ fun DraftCard(
 @Composable
 fun ApproveDialog(
     draft: OFFDraftDto,
+    availableCategories: List<String>,
+    onCreateCategory: (String, (String) -> Unit) -> Unit,
     onDismiss: () -> Unit,
     onApprove: (name: String, categoryId: String, unit: String) -> Unit
 ) {
@@ -400,19 +407,51 @@ fun ApproveDialog(
     var unit by remember { mutableStateOf("pcs") }
     var categoryExpanded by remember { mutableStateOf(false) }
     var unitExpanded by remember { mutableStateOf(false) }
-
-    val categories = listOf(
-        "Makanan & Minuman",
-        "Sembako",
-        "Minuman",
-        "Snack",
-        "Rokok",
-        "Toiletries",
-        "Perlengkapan Rumah",
-        "Lainnya"
-    )
+    var showNewCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
 
     val units = listOf("pcs", "pack", "box", "karton", "lusin", "kg", "liter")
+
+    // Dialog untuk membuat kategori baru
+    if (showNewCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewCategoryDialog = false },
+            title = { Text("Buat Kategori Baru") },
+            text = {
+                OutlinedTextField(
+                    value = newCategoryName,
+                    onValueChange = { newCategoryName = it },
+                    label = { Text("Nama Kategori") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newCategoryName.isNotBlank()) {
+                            onCreateCategory(newCategoryName) { createdName ->
+                                categoryId = createdName
+                                showNewCategoryDialog = false
+                                newCategoryName = ""
+                            }
+                        }
+                    },
+                    enabled = newCategoryName.isNotBlank()
+                ) {
+                    Text("Buat")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNewCategoryDialog = false
+                    newCategoryName = ""
+                }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -465,7 +504,7 @@ fun ApproveDialog(
                         expanded = categoryExpanded,
                         onDismissRequest = { categoryExpanded = false }
                     ) {
-                        categories.forEach { cat ->
+                        availableCategories.forEach { cat ->
                             DropdownMenuItem(
                                 text = { Text(cat) },
                                 onClick = {
@@ -474,6 +513,14 @@ fun ApproveDialog(
                                 }
                             )
                         }
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text("+ Buat Kategori Baru...", color = MaterialTheme.colorScheme.primary) },
+                            onClick = {
+                                categoryExpanded = false
+                                showNewCategoryDialog = true
+                            }
+                        )
                     }
                 }
 

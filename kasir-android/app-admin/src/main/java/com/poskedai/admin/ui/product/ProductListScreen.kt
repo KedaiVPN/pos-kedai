@@ -26,6 +26,7 @@ fun ProductListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val actionState by viewModel.actionState.collectAsState()
     val isMasterEnabled by viewModel.isMasterEnabled.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(actionState) {
@@ -38,12 +39,17 @@ fun ProductListScreen(
     LaunchedEffect(Unit) {
         viewModel.loadProducts()
         viewModel.loadMasterProductStatus()
+        viewModel.loadCategories()
     }
 
     var showAddDialog by remember { mutableStateOf(false) }
 
     if (showAddDialog) {
         AddProductDialog(
+            availableCategories = categories,
+            onCreateCategory = { name, onCreated ->
+                viewModel.createNewCategory(name, onCreated)
+            },
             onDismiss = { showAddDialog = false },
             onSave = { name, category, barcode, photoUrl, isGeneratedBarcode ->
                 viewModel.addProduct(context, name, category, barcode, photoUrl, isGeneratedBarcode)

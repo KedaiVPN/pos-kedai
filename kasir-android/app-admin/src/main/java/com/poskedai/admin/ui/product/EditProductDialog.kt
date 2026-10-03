@@ -23,6 +23,8 @@ import java.util.UUID
 @Composable
 fun EditProductDialog(
     product: JsonObject,
+    availableCategories: List<String>,
+    onCreateCategory: (String, (String) -> Unit) -> Unit,
     onDismiss: () -> Unit,
     onSave: (String, String, String) -> Unit
 ) {
@@ -32,6 +34,9 @@ fun EditProductDialog(
     var barcode by remember { mutableStateOf(if (product.has("barcode") && !product.get("barcode").isJsonNull) product.get("barcode").asString else "") }
     var showScanner by remember { mutableStateOf(false) }
     var generatedBarcodeBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var showNewCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
 
     if (showScanner) {
         Dialog(
@@ -56,6 +61,43 @@ fun EditProductDialog(
         return
     }
 
+    // Dialog untuk membuat kategori baru
+    if (showNewCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewCategoryDialog = false },
+            title = { Text("Buat Kategori Baru") },
+            text = {
+                OutlinedTextField(
+                    value = newCategoryName,
+                    onValueChange = { newCategoryName = it },
+                    label = { Text("Nama Kategori") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newCategoryName.isNotBlank()) {
+                            onCreateCategory(newCategoryName) { createdName ->
+                                category = createdName
+                                newCategoryName = ""
+                                showNewCategoryDialog = false
+                            }
+                        }
+                    }
+                ) {
+                    Text("Buat")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showNewCategoryDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
+        return
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Produk") },
@@ -67,12 +109,42 @@ fun EditProductDialog(
                     label = { Text("Nama Produk") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text("Kategori") },
+                @OptIn(ExperimentalMaterial3Api::class)
+                ExposedDropdownMenuBox(
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = !categoryExpanded },
                     modifier = Modifier.fillMaxWidth()
-                )
+                ) {
+                    OutlinedTextField(
+                        value = category,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Kategori") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = categoryExpanded,
+                        onDismissRequest = { categoryExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("+ Buat Kategori Baru...", color = MaterialTheme.colorScheme.primary) },
+                            onClick = {
+                                categoryExpanded = false
+                                showNewCategoryDialog = true
+                            }
+                        )
+                        availableCategories.forEach { catName ->
+                            DropdownMenuItem(
+                                text = { Text(catName) },
+                                onClick = {
+                                    category = catName
+                                    categoryExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = barcode,

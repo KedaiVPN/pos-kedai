@@ -37,8 +37,42 @@ class ImportProductViewModel : ViewModel() {
 
     val draftPageSize = 10
 
+    private val _categories = MutableStateFlow<List<String>>(emptyList())
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
+
     init {
         loadDrafts()
+        loadCategories()
+    }
+
+    fun loadCategories() {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.productApi.getCategories()
+                if (response.isSuccessful) {
+                    val categoryList = response.body()?.map { it.get("name").asString } ?: emptyList()
+                    _categories.value = categoryList
+                }
+            } catch (e: Exception) {
+                // Keep empty list on error
+            }
+        }
+    }
+
+    fun createNewCategory(categoryName: String, onSuccess: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.productApi.createCategory(mapOf("name" to categoryName))
+                if (response.isSuccessful) {
+                    loadCategories()
+                    onSuccess(categoryName)
+                } else {
+                    _actionMessage.value = "Gagal membuat kategori: ${response.code()}"
+                }
+            } catch (e: Exception) {
+                _actionMessage.value = "Gagal membuat kategori: ${e.message}"
+            }
+        }
     }
 
     fun loadDrafts() {
