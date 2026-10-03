@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -68,8 +69,18 @@ func downloadAndSaveImage(imageURL, barcode string) (string, error) {
 		return "", nil
 	}
 
+	// Trusted public CDN (Open Food Facts) — bypass SSRF check.
+	// OFF memiliki proteksi SSRF mereka sendiri di server.
+	parsed, err := url.Parse(imageURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL")
+	}
+	hostname := strings.ToLower(parsed.Hostname())
+	isTrustedOFF := strings.HasSuffix(hostname, "openfoodfacts.org")
+
 	// Anti-SSRF: tolak URL ke localhost / private network / scheme non-HTTP.
-	if !IsSafeExternalURL(imageURL) {
+	// Kecuali untuk trusted public CDN seperti OFF.
+	if !isTrustedOFF && !IsSafeExternalURL(imageURL) {
 		return "", fmt.Errorf("unsafe image URL rejected")
 	}
 
