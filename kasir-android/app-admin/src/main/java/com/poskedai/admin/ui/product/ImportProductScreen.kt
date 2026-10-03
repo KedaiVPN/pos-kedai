@@ -96,7 +96,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
-                        onClick = { viewModel.fetchFromOFF() },
+                        onClick = { viewModel.fetchFromS3() },
                         enabled = !isFetching,
                         modifier = Modifier.weight(1f)
                     ) {
@@ -108,7 +108,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(if (isFetching) "Menarik..." else "Tarik 5 Produk (Page $currentPage)")
+                        Text(if (isFetching) "Menarik..." else "Tarik 25 Produk (S3 Dump)")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = { viewModel.loadDrafts() }) {
@@ -126,7 +126,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "Sedang mengunduh 5 produk & foto dari Open Food Facts...",
+                        text = "Sedang mengunduh 25 produk & foto dari S3 dump...",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold
                     )

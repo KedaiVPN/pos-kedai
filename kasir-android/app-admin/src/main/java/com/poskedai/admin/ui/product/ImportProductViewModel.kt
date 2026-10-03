@@ -87,6 +87,38 @@ class ImportProductViewModel : ViewModel() {
         }
     }
 
+    fun fetchFromS3() {
+        viewModelScope.launch {
+            _isFetching.value = true
+            try {
+                val page = _currentPage.value
+                val response = RetrofitClient.adminApi.fetchFromS3(page = page, pageSize = 25)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val inserted = body?.inserted ?: 0
+                    _actionMessage.value = "Berhasil menarik $inserted produk dari S3 dump"
+                    _currentPage.value = page + 1
+                    loadDrafts()
+                } else {
+                    // Error spesifik berdasarkan HTTP code
+                    val errorMsg = when (response.code()) {
+                        503 -> "Layanan dump S3 sedang tidak tersedia. Silakan coba lagi beberapa saat lagi."
+                        else -> "Produk belum dapat ditarik dari S3 saat ini. Silakan coba lagi beberapa saat lagi."
+                    }
+                    _errorDialogMessage.value = errorMsg
+                }
+            } catch (e: java.net.UnknownHostException) {
+                _errorDialogMessage.value = "Tidak dapat terhubung ke S3. Periksa koneksi internet Anda."
+            } catch (e: java.net.SocketTimeoutException) {
+                _errorDialogMessage.value = "Koneksi ke S3 timeout. Coba lagi dalam beberapa saat."
+            } catch (e: Exception) {
+                _errorDialogMessage.value = "Produk belum dapat ditarik dari S3 saat ini. Silakan coba lagi beberapa saat lagi."
+            } finally {
+                _isFetching.value = false
+            }
+        }
+    }
+
     fun approveDraft(barcode: String, name: String, categoryId: String, unit: String) {
         viewModelScope.launch {
             try {

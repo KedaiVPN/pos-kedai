@@ -174,6 +174,7 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 
 			// Open Food Facts Draft Management (Staging di Redis DB 1)
 			adminRoutes.POST("/off/fetch", offHandler.FetchFromOFF)
+			adminRoutes.POST("/off/fetch-s3", offHandler.FetchFromS3Dump)
 			adminRoutes.GET("/off/drafts", offHandler.ListDrafts)
 			adminRoutes.POST("/off/drafts/approve", offHandler.ApproveDraft)
 			adminRoutes.DELETE("/off/drafts/:barcode", offHandler.RejectDraft)

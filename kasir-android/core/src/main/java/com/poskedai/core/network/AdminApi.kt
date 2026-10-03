@@ -134,6 +134,12 @@ interface AdminApi {
         @retrofit2.http.Query("page_size") pageSize: Int = 25
     ): Response<OFFFetchResponse>
 
+    @POST("admin/off/fetch-s3")
+    suspend fun fetchFromS3(
+        @retrofit2.http.Query("page") page: Int = 1,
+        @retrofit2.http.Query("page_size") pageSize: Int = 25
+    ): Response<OFFFetchResponse>
+
     @GET("admin/off/drafts")
     suspend fun getOFFDrafts(): Response<OFFDraftsResponse>
 
