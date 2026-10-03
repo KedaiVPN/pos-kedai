@@ -291,6 +291,7 @@ fun AddProductScreen(
                             if (categories.isEmpty()) {
                                 DropdownMenuItem(
                                     text = { Text("Belum ada kategori") },
+                                    onClick = { },
                                     enabled = false
                                 )
                             } else {

@@ -37,7 +37,7 @@ class ProductRepository(
 
     suspend fun getStoreCategories(): List<String> {
         return try {
-            val response = RetrofitClient.productApi.getStoreCategories()
+            val response = RetrofitClient.storeProductApi.getStoreCategories()
             response.mapNotNull { it["name"] as? String }
         } catch (e: Exception) {
             emptyList()
@@ -46,7 +46,7 @@ class ProductRepository(
 
     suspend fun createStoreCategory(name: String): Boolean {
         return try {
-            RetrofitClient.productApi.createStoreCategory(mapOf("name" to name))
+            RetrofitClient.storeProductApi.createStoreCategory(mapOf("name" to name))
             true
         } catch (e: Exception) {
             false

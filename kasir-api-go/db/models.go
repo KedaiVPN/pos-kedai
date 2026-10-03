@@ -104,6 +104,15 @@ type Store struct {
 	IsBlocked    bool               `json:"is_blocked"`
 }
 
+type StoreCategory struct {
+	ID        pgtype.UUID        `json:"id"`
+	StoreID   pgtype.UUID        `json:"store_id"`
+	Name      string             `json:"name"`
+	Slug      string             `json:"slug"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type StoreProduct struct {
 	ID                         pgtype.UUID      `json:"id"`
 	StoreID                    pgtype.UUID      `json:"store_id"`

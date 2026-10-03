@@ -20,6 +20,7 @@ type Querier interface {
 	CreatePendingProduct(ctx context.Context, arg CreatePendingProductParams) (PendingProduct, error)
 	CreateStockMovement(ctx context.Context, arg CreateStockMovementParams) (StockMovement, error)
 	CreateStore(ctx context.Context, arg CreateStoreParams) (Store, error)
+	CreateStoreCategory(ctx context.Context, arg CreateStoreCategoryParams) (StoreCategory, error)
 	CreateStoreProduct(ctx context.Context, arg CreateStoreProductParams) (StoreProduct, error)
 	CreateSubscriptionPlan(ctx context.Context, arg CreateSubscriptionPlanParams) (SubscriptionPlan, error)
 	CreateSubscriptionTransaction(ctx context.Context, arg CreateSubscriptionTransactionParams) (SubscriptionTransaction, error)
@@ -41,6 +42,7 @@ type Querier interface {
 	DeleteTransactionsByStore(ctx context.Context, storeID pgtype.UUID) error
 	DeleteUser(ctx context.Context, id pgtype.UUID) error
 	GetAllCategories(ctx context.Context) ([]Category, error)
+	GetAllStoreCategories(ctx context.Context, storeID pgtype.UUID) ([]StoreCategory, error)
 	GetAllStoreTransactions(ctx context.Context, storeID pgtype.UUID) ([]Transaction, error)
 	GetAllStoreTransactionsByCashier(ctx context.Context, arg GetAllStoreTransactionsByCashierParams) ([]Transaction, error)
 	GetCashierReportById(ctx context.Context, arg GetCashierReportByIdParams) (CashierReport, error)
@@ -54,6 +56,7 @@ type Querier interface {
 	GetRecentStoreTransactions(ctx context.Context, storeID pgtype.UUID) ([]Transaction, error)
 	GetRecentStoreTransactionsByCashier(ctx context.Context, arg GetRecentStoreTransactionsByCashierParams) ([]Transaction, error)
 	GetStore(ctx context.Context, id pgtype.UUID) (Store, error)
+	GetStoreCategoryByName(ctx context.Context, arg GetStoreCategoryByNameParams) (StoreCategory, error)
 	GetStoreDashboardStats(ctx context.Context, storeID pgtype.UUID) (GetStoreDashboardStatsRow, error)
 	GetStoreDashboardStatsByCashier(ctx context.Context, arg GetStoreDashboardStatsByCashierParams) (GetStoreDashboardStatsByCashierRow, error)
 	GetStoreProStatus(ctx context.Context, id pgtype.UUID) (GetStoreProStatusRow, error)
