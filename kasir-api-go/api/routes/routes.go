@@ -189,8 +189,8 @@ func SetupRoutes(router *gin.Engine, queries *db.Queries, pool *pgxpool.Pool, rd
 		// Feedback route
 		api.POST("/feedback", authMw, feedbackHandler.SendFeedback)
 
-		// Upload route
-		api.POST("/upload", handlers.UploadImage)
+		// Upload route - requires auth to prevent anonymous storage exhaustion DoS
+		api.POST("/upload", authMw, handlers.UploadImage)
 	}
 
 	// Serve static files for uploads

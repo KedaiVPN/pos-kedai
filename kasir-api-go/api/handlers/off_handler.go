@@ -68,7 +68,30 @@ func downloadAndSaveImage(imageURL, barcode string) (string, error) {
 		return "", nil
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	// Anti-SSRF: tolak URL ke localhost / private network / scheme non-HTTP.
+	if !IsSafeExternalURL(imageURL) {
+		return "", fmt.Errorf("unsafe image URL rejected")
+	}
+
+	// Cegah path traversal lewat barcode saat dipakai di nama file.
+	safeBarcode := SanitizeBarcode(barcode)
+	if safeBarcode == "" {
+		safeBarcode = "unknown"
+	}
+
+	// Jangan ikuti redirect ke host internal (SSRF via 302).
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		CheckRedirect: func(r *http.Request, via []*http.Request) error {
+			if len(via) >= 3 {
+				return fmt.Errorf("too many redirects")
+			}
+			if !IsSafeExternalURL(r.URL.String()) {
+				return fmt.Errorf("redirect to unsafe host rejected")
+			}
+			return nil
+		},
+	}
 	req, err := http.NewRequest("GET", imageURL, nil)
 	if err != nil {
 		return "", err
@@ -76,35 +99,46 @@ func downloadAndSaveImage(imageURL, barcode string) (string, error) {
 	req.Header.Set("User-Agent", OFFUserAgent)
 
 	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to fetch image: status %d", resp.StatusCode)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch image: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch image: status %d", resp.StatusCode)
+	}
+
+	// Batasi ukuran unduhan (disk exhaustion guard).
+	limited := io.LimitReader(resp.Body, MaxUploadSize+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return "", err
+	}
+	if int64(len(data)) > MaxUploadSize {
+		return "", fmt.Errorf("image exceeds max size %d bytes", MaxUploadSize)
+	}
+
+	// Validasi konten benar-benar gambar (MIME sniffing), bukan percaya ekstensi URL.
+	ext := ""
+	switch http.DetectContentType(data) {
+	case "image/jpeg":
+		ext = ".jpg"
+	case "image/png":
+		ext = ".png"
+	case "image/webp":
+		ext = ".webp"
+	default:
+		return "", fmt.Errorf("downloaded content is not a supported image")
+	}
 
 	uploadDir := "uploads"
 	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
 		return "", err
 	}
 
-	ext := ".jpg"
-	if strings.HasSuffix(strings.ToLower(imageURL), ".png") {
-		ext = ".png"
-	} else if strings.HasSuffix(strings.ToLower(imageURL), ".webp") {
-		ext = ".webp"
-	}
-
-	filename := fmt.Sprintf("off_%s_%d%s", barcode, time.Now().Unix(), ext)
+	filename := fmt.Sprintf("off_%s_%d%s", safeBarcode, time.Now().Unix(), ext)
 	filePath := filepath.Join(uploadDir, filename)
 
-	out, err := os.Create(filePath)
-	if err != nil {
-		return "", err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		os.Remove(filePath)
+	if err := os.WriteFile(filePath, data, 0o644); err != nil {
 		return "", err
 	}
 

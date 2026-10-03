@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -55,3 +58,48 @@ var AllowedImageExt = map[string]bool{
 
 // MaxUploadSize default 3 MB – sama dengan nilai di store_handler.go.
 const MaxUploadSize int64 = 3 * 1024 * 1024
+
+// IsSafeExternalURL memeriksa apakah URL aman untuk di-request dari server (anti-SSRF).
+// Menolak host localhost, private network (RFC 1918, link-local, loopback).
+func IsSafeExternalURL(rawURL string) bool {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return false
+	}
+
+	hostname := parsed.Hostname()
+	if hostname == "" {
+		return false
+	}
+
+	// Blokir langsung localhost dan domain internal
+	lowerHost := strings.ToLower(hostname)
+	if lowerHost == "localhost" || strings.HasSuffix(lowerHost, ".local") || strings.HasSuffix(lowerHost, ".internal") {
+		return false
+	}
+
+	// Resolve IP address
+	ips, err := net.LookupIP(hostname)
+	if err != nil || len(ips) == 0 {
+		return false
+	}
+
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+			return false
+		}
+	}
+
+	return true
+}
+
+// SanitizeBarcode membersihkan karakter yang tidak valid dari barcode agar aman dipakai di nama file.
+func SanitizeBarcode(barcode string) string {
+	reg := regexp.MustCompile(`[^a-zA-Z0-9_\-]`)
+	return reg.ReplaceAllString(barcode, "")
+}

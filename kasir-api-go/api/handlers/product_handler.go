@@ -39,10 +39,10 @@ type CreateMasterProductRequest struct {
 }
 
 func (h *ProductHandler) CreateMasterProduct(c *gin.Context) {
-
+	// Master product creation is admin-only to prevent unauthorized global catalog pollution
 	role, exists := c.Get("role")
-	if exists && role == "kasir" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Kasir is not allowed to create master product"})
+	if !exists || role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can create master products"})
 		return
 	}
 	var req CreateMasterProductRequest
@@ -543,6 +543,12 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	if status == "pending" {
+		// Sanitize text inputs to prevent XSS
+		req.Name = SanitizeText(req.Name)
+		req.Category = SanitizeText(req.Category)
+		req.Barcode = SanitizeText(req.Barcode)
+		req.Description = SanitizeText(req.Description)
+
 		// Normalize photo URL before storing
 		normalizedPhotoUrl := req.ImageURL
 		if normalizedPhotoUrl != "" {
@@ -586,6 +592,18 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		go CheckAndSendStockNotification(context.Background(), h.queries, pgtype.UUID{Bytes: id, Valid: true})
 	} else if status == "master" {
 		// Update master_products: name, barcode, category_id, photo_url
+		// Master product updates are admin-only to prevent unauthorized global catalog changes
+		role, exists := c.Get("role")
+		if !exists || role != "admin" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Only admin can update master products"})
+			return
+		}
+
+		// Sanitize text inputs to prevent XSS
+		req.Name = SanitizeText(req.Name)
+		req.Category = SanitizeText(req.Category)
+		req.Barcode = SanitizeText(req.Barcode)
+
 		var categoryID pgtype.UUID
 		if req.Category != "" {
 			category, err := h.queries.GetCategoryByName(c.Request.Context(), req.Category)
