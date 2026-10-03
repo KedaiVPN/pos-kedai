@@ -58,7 +58,7 @@ class ImportProductViewModel : ViewModel() {
             _isFetching.value = true
             try {
                 val page = _currentPage.value
-                val response = RetrofitClient.adminApi.fetchFromOFF(page = page, pageSize = 25)
+                val response = RetrofitClient.adminApi.fetchFromOFF(page = page, pageSize = 5)
                 if (response.isSuccessful) {
                     val body = response.body()
                     val inserted = body?.inserted ?: 0

@@ -23,7 +23,7 @@ import (
 const (
 	DraftHashKey = "off:drafts"
 	OFFAPI       = "https://id.openfoodfacts.org/api/v3"
-	OFFUserAgent = "PosKedaiAdmin/1.0 (Android; Linux) admin@poskedai.my.id"
+	OFFUserAgent = "PosKedaiAdmin/1.0 (Android; Linux) kontak@poskedai.com"
 )
 
 // IndonesianPopularBrands - Daftar brand FMCG terlaris di Indonesia (Kantar 2024-2025)
@@ -209,7 +209,7 @@ type DraftProduct struct {
 // FetchFromOFF - Admin menarik batch produk dari Open Food Facts
 func (h *OFFHandler) FetchFromOFF(c *gin.Context) {
 	page := c.DefaultQuery("page", "1")
-	pageSize := c.DefaultQuery("page_size", "25")
+	pageSize := c.DefaultQuery("page_size", "5")
 
 	// Ambil data dari Open Food Facts Indonesia
 	url := fmt.Sprintf("%s/search?countries_tags_en=indonesia&page=%s&page_size=%s&fields=code,product_name,product_name_id,brands,categories,image_front_url",
@@ -222,7 +222,7 @@ func (h *OFFHandler) FetchFromOFF(c *gin.Context) {
 		return
 	}
 
-	req.Header.Set("User-Agent", "PosKedaiAdmin - WebApp - Version 1.0 - admin@poskedai.my.id")
+	req.Header.Set("User-Agent", OFFUserAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {

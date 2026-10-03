@@ -108,7 +108,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(if (isFetching) "Menarik..." else "Tarik 25 Produk (Page $currentPage)")
+                        Text(if (isFetching) "Menarik..." else "Tarik 5 Produk (Page $currentPage)")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(onClick = { viewModel.loadDrafts() }) {
@@ -126,7 +126,7 @@ fun ImportProductScreen(viewModel: ImportProductViewModel = viewModel()) {
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Text(
-                        text = "Sedang mengunduh 25 produk & foto dari Open Food Facts...",
+                        text = "Sedang mengunduh 5 produk & foto dari Open Food Facts...",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold
                     )
